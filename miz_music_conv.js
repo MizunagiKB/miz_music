@@ -37,49 +37,41 @@ var CMusicParserSMF = (function () {
         var nEv = nRaw & 0xF0;
         var oCData = null;
         switch (nEv) {
-            case 0x80:
-            case 0x90:
-            case 0xA0:
-            case 0xB0:
+            case miz.music.E_MIDI_MSG.NOTE_OF:
+            case miz.music.E_MIDI_MSG.NOTE_ON:
+            case miz.music.E_MIDI_MSG.P_AFTER_TOUCH:
+            case miz.music.E_MIDI_MSG.CONTROL_CHANGE:
                 {
                     oCData = new miz.music.CMIDIData();
                     oCData.m_nStep = this.m_nStep;
-                    oCData.m_nTempo = 0;
-                    oCData.m_midiData = [
+                    oCData.m_eMMsg = nEv;
+                    oCData.m_aryValue = [
                         nRaw,
                         this.m_oCParser.m_aryData[this.m_nPos + 0],
                         this.m_oCParser.m_aryData[this.m_nPos + 1]
                     ];
-                    if (this.m_oCParser.m_aryData[this.m_nPos + 1] > 0x7F) {
-                        console.log(this.m_nPos);
-                        for (var p = 0; p < 16; p++) {
-                            console.log(this.m_oCParser.m_aryData[this.m_nPos + p].toString(16));
-                        }
-                        console.assert(false);
-                        var x = 32 / 0;
-                    }
                     this.m_nPos += 2;
                 }
                 break;
-            case 0xC0:
-            case 0xD0:
+            case miz.music.E_MIDI_MSG.PROGRAM_CHANGE:
+            case miz.music.E_MIDI_MSG.C_AFTER_TOUCH:
                 {
                     oCData = new miz.music.CMIDIData();
                     oCData.m_nStep = this.m_nStep;
-                    oCData.m_nTempo = 0;
-                    oCData.m_midiData = [
+                    oCData.m_eMMsg = nEv;
+                    oCData.m_aryValue = [
                         nRaw,
                         this.m_oCParser.m_aryData[this.m_nPos + 0]
                     ];
                     this.m_nPos += 1;
                 }
                 break;
-            case 0xE0:
+            case miz.music.E_MIDI_MSG.PITCH:
                 {
                     oCData = new miz.music.CMIDIData();
                     oCData.m_nStep = this.m_nStep;
-                    oCData.m_nTempo = 0;
-                    oCData.m_midiData = [
+                    oCData.m_eMMsg = nEv;
+                    oCData.m_aryValue = [
                         nRaw,
                         this.m_oCParser.m_aryData[this.m_nPos + 0],
                         this.m_oCParser.m_aryData[this.m_nPos + 1]
@@ -98,59 +90,90 @@ var CMusicParserSMF = (function () {
     CMusicParserSMF.prototype.decode_message_ev_met = function (nRaw) {
         var oCData = null;
         switch (nRaw) {
-            case 0xF0:
+            case miz.music.E_MIDI_MSG.SYS_EX_F0:
                 {
                     var nSize = this.decode_dvalue();
                     oCData = new miz.music.CMIDIData();
                     oCData.m_nStep = this.m_nStep;
-                    oCData.m_nTempo = 0;
-                    oCData.m_midiData = [0xF0];
+                    oCData.m_aryValue = [0xF0];
+                    oCData.m_eMMsg = nRaw;
                     for (var n = 0; n < nSize; n++) {
-                        oCData.m_midiData.push(this.m_oCParser.m_aryData[this.m_nPos + n]);
+                        oCData.m_aryValue.push(this.m_oCParser.m_aryData[this.m_nPos + n]);
                     }
                     this.m_nPos += nSize;
                 }
                 break;
-            case 0xF7:
+            case miz.music.E_MIDI_MSG.SYS_EX_F7:
                 {
                     var nSize = this.decode_dvalue();
                     oCData = new miz.music.CMIDIData();
                     oCData.m_nStep = this.m_nStep;
-                    oCData.m_nTempo = 0;
-                    oCData.m_midiData = [];
+                    oCData.m_aryValue = [];
+                    oCData.m_eMMsg = nRaw;
                     for (var n = 0; n < nSize; n++) {
-                        oCData.m_midiData.push(this.m_oCParser.m_aryData[this.m_nPos + n]);
+                        oCData.m_aryValue.push(this.m_oCParser.m_aryData[this.m_nPos + n]);
                     }
                     this.m_nPos += nSize;
                 }
                 break;
-            case 0xFF:
+            case miz.music.E_MIDI_MSG.META_EVT:
                 {
                     var nType = this.m_oCParser.m_aryData[this.m_nPos];
                     this.m_nPos += 1;
                     var nSize = this.decode_dvalue();
                     switch (nType) {
-                        case 0x2F:
+                        case 0x01:
+                        case 0x02:
+                        case 0x03:
+                        case 0x04:
+                        case 0x05:
+                        case 0x06:
+                        case 0x07:
+                            {
+                                var aryData = this.m_oCParser.m_aryData.subarray(this.m_nPos, this.m_nPos + nSize);
+                                oCData = new miz.music.CMIDIData();
+                                oCData.m_nStep = this.m_nStep;
+                                oCData.m_eMMsg = nRaw;
+                                oCData.m_eMEvt = nType;
+                                oCData.m_strValue = Encoding.convert(aryData, {
+                                    to: "UNICODE",
+                                    type: "string"
+                                });
+                                if (nType == miz.music.E_META_EVT.TRACK_NAME) {
+                                    if (this.m_strTitle == "") {
+                                        console.log(oCData.m_eMEvt.toString(16) + " " + oCData.m_strValue);
+                                        this.m_strTitle = oCData.m_strValue;
+                                    }
+                                }
+                                this.m_nPos += nSize;
+                            }
+                            break;
+                        case miz.music.E_META_EVT.END_OF_TRACK:
                             console.log("End of Track 0xFF" + " 0x" + nType.toString(16) + " " + nSize);
                             this.m_nPos += nSize;
                             break;
-                        case 0x51:
-                            var nTempo = 0;
-                            nTempo |= this.m_oCParser.m_aryData[this.m_nPos + 0] << 16;
-                            nTempo |= this.m_oCParser.m_aryData[this.m_nPos + 1] << 8;
-                            nTempo |= this.m_oCParser.m_aryData[this.m_nPos + 2];
-                            console.log("Tempo            " + nTempo);
-                            console.log("TimeDiv          " + this.m_nTimeDiv);
-                            this.m_nPos += nSize;
-                            oCData = new miz.music.CMIDIData();
-                            oCData.m_nStep = this.m_nStep;
-                            oCData.m_nTempo = nTempo;
+                        case miz.music.E_META_EVT.TEMPO:
+                            {
+                                var nTempo = 0;
+                                nTempo |= this.m_oCParser.m_aryData[this.m_nPos + 0] << 16;
+                                nTempo |= this.m_oCParser.m_aryData[this.m_nPos + 1] << 8;
+                                nTempo |= this.m_oCParser.m_aryData[this.m_nPos + 2];
+                                this.m_nPos += nSize;
+                                oCData = new miz.music.CMIDIData();
+                                oCData.m_nStep = this.m_nStep;
+                                oCData.m_eMMsg = nRaw;
+                                oCData.m_eMEvt = nType;
+                                oCData.m_numValue = nTempo;
+                            }
                             break;
                         default:
-                            this.m_nPos += nSize;
-                            oCData = new miz.music.CMIDIData();
-                            oCData.m_nStep = this.m_nStep;
-                            oCData.m_nTempo = 0;
+                            {
+                                this.m_nPos += nSize;
+                                oCData = new miz.music.CMIDIData();
+                                oCData.m_nStep = this.m_nStep;
+                                oCData.m_eMMsg = nRaw;
+                                oCData.m_eMEvt = nType;
+                            }
                             break;
                     }
                 }
@@ -191,6 +214,7 @@ var CMusicParserSMF = (function () {
         this.m_nFmt = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 8);
         this.m_nTrk = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 10);
         this.m_nTimeDiv = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 12);
+        this.m_strTitle = "";
     };
     CMusicParserSMF.prototype.parse_MTrk = function () {
         var oCMIDITrack = new miz.music.CMIDITrack();
@@ -218,15 +242,13 @@ var CMusicParserSMF = (function () {
         var nSize = this.m_oCParser.m_aryData.length;
         this.parse_MThd();
         this.m_nPos += 14;
-        oCMIDIMusic.m_nTimeDiv = this.m_nTimeDiv;
-        console.log("n " + this.m_nTrk);
         for (var nTrack = 0; nTrack < this.m_nTrk; nTrack++) {
             this.m_nCurrentEv = null;
             oCMIDITrack = this.parse_MTrk();
             oCMIDIMusic.m_listTrack.push(oCMIDITrack);
         }
-        console.log("nSize: " + nSize);
-        console.log("nPos:  " + this.m_nPos);
+        oCMIDIMusic.m_nTimeDiv = this.m_nTimeDiv;
+        oCMIDIMusic.m_strTitle = this.m_strTitle;
         return (oCMIDIMusic);
     };
     return CMusicParserSMF;

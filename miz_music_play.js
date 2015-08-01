@@ -67,34 +67,42 @@ var miz;
                     bResult = true;
                     if ((oCTrStatus.m_nStepCurr + midiData.m_nStep) < this.m_nStepCurr) {
                         oCTrStatus.m_nStepCurr += midiData.m_nStep;
-                        if (midiData.m_nTempo > 0) {
-                            this.m_nTempo = midiData.m_nTempo;
-                        }
-                        if (midiData.m_midiData.length > 0) {
-                            var nEv = midiData.m_midiData[0] & 0xF0;
-                            var nCh = midiData.m_midiData[0] & 0x0F;
-                            switch (nEv) {
-                                case miz.music.E_MIDI_EV.NOTE_OF:
-                                    {
-                                        var nNote = midiData.m_midiData[1];
+                        switch (midiData.m_eMMsg) {
+                            case miz.music.E_MIDI_MSG.NOTE_OF:
+                                {
+                                    var nCh = midiData.m_aryValue[0] & 0x0F;
+                                    var nNote = midiData.m_aryValue[1];
+                                    this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
+                                }
+                                break;
+                            case miz.music.E_MIDI_MSG.NOTE_ON:
+                                {
+                                    var nCh = midiData.m_aryValue[0] & 0x0F;
+                                    var nNote = midiData.m_aryValue[1];
+                                    var nVelo = midiData.m_aryValue[2];
+                                    if (nVelo > 0) {
+                                        this.m_listChStatus[nCh].m_listNote[nNote] += 1;
+                                    }
+                                    else {
                                         this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
                                     }
-                                    break;
-                                case miz.music.E_MIDI_EV.NOTE_ON:
-                                    {
-                                        var nNote = midiData.m_midiData[1];
-                                        var nValo = midiData.m_midiData[2];
-                                        if (nValo > 0) {
-                                            this.m_listChStatus[nCh].m_listNote[nNote] += 1;
-                                        }
-                                        else {
-                                            this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
-                                        }
+                                }
+                                break;
+                            case miz.music.E_MIDI_MSG.META_EVT:
+                                {
+                                    switch (midiData.m_eMEvt) {
+                                        case miz.music.E_META_EVT.TEMPO:
+                                            {
+                                                this.m_nTempo = midiData.m_numValue;
+                                            }
+                                            break;
                                     }
-                                    break;
-                            }
+                                }
+                                break;
+                        }
+                        if (midiData.m_aryValue.length > 0) {
                             try {
-                                this.m_hMIDIO.send(midiData.m_midiData, 0);
+                                this.m_hMIDIO.send(midiData.m_aryValue, 0);
                             }
                             catch (e) {
                             }
@@ -157,13 +165,9 @@ var miz;
                     var oCh = this.m_listChStatus[nCh];
                     var nTime = nPerformance + nCh * 20;
                     if (this.m_hMIDIO != null) {
-                        this.m_hMIDIO.send([0xB0 + nCh, 0x01, 0], nTime);
-                        this.m_hMIDIO.send([0xB0 + nCh, 0x05, 0], nTime);
-                        this.m_hMIDIO.send([0xB0 + nCh, 0x0A, 64], nTime);
-                        this.m_hMIDIO.send([0xB0 + nCh, 0x40, 0], nTime);
-                        this.m_hMIDIO.send([0xB0 + nCh, 0x78, 0], nTime);
-                        this.m_hMIDIO.send([0xB0 + nCh, 0x79, 0], nTime);
-                        this.m_hMIDIO.send([0xB0 + nCh, 0x7B, 0], nTime);
+                        this.m_hMIDIO.send([0xB0 + nCh, 0x79, 0], 0);
+                        this.m_hMIDIO.send([0xB0 + nCh, 0x7B, 0], 0);
+                        this.m_hMIDIO.send([0xB0 + nCh, 0x78, 0], 0);
                     }
                 }
                 this.stop();
@@ -191,17 +195,15 @@ var miz;
                 this.timer_ignite();
             };
             CPlayer.prototype.stop = function () {
-                var nTimeCurr = window.performance.now();
                 this.m_ePlayerStatus = E_PLAYER_STATUS.E_STOP;
                 this.timer_destroy();
                 for (var nCh = 0; nCh < CPlayer.MAX_CH; nCh++) {
                     var oCh = this.m_listChStatus[nCh];
-                    var nTime = nTimeCurr + nCh * 20;
                     for (var nNote = 0; nNote < 0x80; nNote++) {
                         var nCount = oCh.m_listNote[nNote];
                         while (nCount > 0) {
                             if (this.m_hMIDIO != null) {
-                                this.m_hMIDIO.send([0x80 + nCh, nNote, 0], nTime);
+                                this.m_hMIDIO.send([0x80 + nCh, nNote, 0], 0);
                             }
                             nCount--;
                         }
@@ -257,14 +259,27 @@ var miz;
             else {
                 oCResult = new CPlayer();
                 oCResult.reset();
-                oCResult.m_bSysEx = bSysEx;
-                oCResult.evt_success = evt_success;
-                oCResult.evt_failure = evt_failure;
-                navigator.requestMIDIAccess({ sysex: oCResult.m_bSysEx }).then(evt_midi_success, evt_midi_failure);
+                if (navigator.requestMIDIAccess != undefined) {
+                    oCResult.m_bSysEx = bSysEx;
+                    oCResult.evt_success = evt_success;
+                    oCResult.evt_failure = evt_failure;
+                    navigator.requestMIDIAccess({ sysex: oCResult.m_bSysEx }).then(evt_midi_success, evt_midi_failure);
+                }
                 CPlayer.INSTANCE = oCResult;
             }
             return (oCResult);
         }
         music_player.create_instance = create_instance;
+        /*!
+         * @brief プレイヤーインスタンスの破棄処理
+         */
+        function destroy_instance() {
+            if (CPlayer.INSTANCE != null) {
+                CPlayer.INSTANCE.evt_success = null;
+                CPlayer.INSTANCE.evt_failure = null;
+                CPlayer.INSTANCE = null;
+            }
+        }
+        music_player.destroy_instance = destroy_instance;
     })(music_player = miz.music_player || (miz.music_player = {}));
 })(miz || (miz = {}));
