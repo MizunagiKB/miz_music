@@ -266,7 +266,7 @@
                     + '<button type="button" class="btn btn-default" onclick="evt_music_attach({{idx}});"><span class="glyphicon glyphicon-play"></span></button>'
                     + '</div>'
                     + '</td>'
-                    + '<th>{{filename}}</th>'
+                    + '<th>{{title}}</br ><small>{{filename}}</small></th>'
                     + '<td>{{filesize}}</td>'
                     + '<td>{{track_count}}</td>'
                     + '<td>'
@@ -287,6 +287,7 @@
                         {
                             "filename": refData.filename,
                             "filesize": refData.filesize,
+                            "title": refData.filedata.m_strTitle,
                             "track_count": refData.filedata.m_listTrack.length,
                             "idx": n
                         }
@@ -303,6 +304,8 @@
              */
             function evt_assign_midio(nDeviceID)
             {
+                miz.music_player.CPlayer.INSTANCE.stop();
+
                 $("#id_assigned_midi_o").text(
                     miz.music_player.CPlayer.INSTANCE.assign_midio(nDeviceID).name
                 );
@@ -387,6 +390,9 @@
         <script src="https://twitter.github.io/hogan.js/builds/3.0.1/hogan-3.0.1.js"></script>
 
         <script charset="utf-8" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+
+        <!-- https://github.com/polygonplanet/encoding.js -->
+        <script type="text/javascript" src="encoding.min.js"></script>
 
         <script type="text/javascript" src="miz_music.js"></script>
         <script type="text/javascript" src="miz_music_conv.js"></script>
