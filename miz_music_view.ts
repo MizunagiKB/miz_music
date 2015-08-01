@@ -23,6 +23,7 @@ export class CViewer
     static INSTANCE: CViewer = null;
     static INTERVAL: number = 100;
     static HEIGHT: number = 96;
+    static PEAK_HISTORY: number = 128;
 
     m_oCSVG: d3.Selection<any> = null;
     m_hTimer: number = null;
@@ -103,13 +104,13 @@ export class CViewer
             this.m_listChannelPeak.push(0);
         }
 
-        for(let n = 0; n < 256; n ++)
+        for(let n = 0; n < CViewer.PEAK_HISTORY; n ++)
         {
             this.m_listEventCount.push(0);
         }
 
         this.m_oCLineRenderer = d3.svg.line()
-            .x(function(d, n) { return n * 2; })
+            .x(function(d, n) { return n * 4; })
             .y(function(d) { return(CViewer.HEIGHT - d); })
             ;
 
@@ -184,9 +185,9 @@ export class CViewer
         }
 
         this.m_listEventCount.push(nValue);
-        if(this.m_listEventCount.length > 256)
+        if(this.m_listEventCount.length > CViewer.PEAK_HISTORY)
         {
-            this.m_listEventCount = this.m_listEventCount.slice(1, 256);
+            this.m_listEventCount = this.m_listEventCount.slice(1, CViewer.PEAK_HISTORY);
         }
 
         this.m_oCSVGLine

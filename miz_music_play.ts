@@ -110,43 +110,51 @@ export class CPlayer
             {
                 oCTrStatus.m_nStepCurr += midiData.m_nStep;
 
-                // テンポ情報が含まれていれば新しい値を設定
-                if(midiData.m_nTempo > 0)
+                switch(midiData.m_eMMsg)
                 {
-                    this.m_nTempo = midiData.m_nTempo;
-                }
+                    case miz.music.E_MIDI_MSG.NOTE_OF:
+                        {
+                            let nCh = midiData.m_aryValue[0] & 0x0F;
+                            let nNote: number = midiData.m_aryValue[1];
 
-                if(midiData.m_midiData.length > 0)
-                {
-                    let nEv = midiData.m_midiData[0] & 0xF0;
-                    let nCh = midiData.m_midiData[0] & 0x0F;
+                            this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
+                        }
+                        break;
 
-                    switch(nEv)
-                    {
-                        case miz.music.E_MIDI_EV.NOTE_OF:
+                    case miz.music.E_MIDI_MSG.NOTE_ON:
+                        {
+                            let nCh = midiData.m_aryValue[0] & 0x0F;
+                            let nNote: number = midiData.m_aryValue[1];
+                            let nVelo = midiData.m_aryValue[2];
+
+                            if(nVelo > 0)
                             {
-                                let nNote: number = midiData.m_midiData[1];
+                                this.m_listChStatus[nCh].m_listNote[nNote] += 1;
+                            } else {
                                 this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
                             }
-                            break;
-                        case miz.music.E_MIDI_EV.NOTE_ON:
+                        }
+                        break;
+
+                    case miz.music.E_MIDI_MSG.META_EVT:
+                        {
+                            switch(midiData.m_eMEvt)
                             {
-                                let nNote = midiData.m_midiData[1];
-                                let nValo = midiData.m_midiData[2];
-
-                                if(nValo > 0)
-                                {
-                                    this.m_listChStatus[nCh].m_listNote[nNote] += 1;
-                                } else {
-                                    this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
-                                }
+                                case miz.music.E_META_EVT.TEMPO:
+                                    {
+                                        this.m_nTempo = midiData.m_numValue;
+                                    }
+                                    break;
                             }
-                            break;
-                    }
+                        }
+                        break;
+                }
 
+                if(midiData.m_aryValue.length > 0)
+                {
                     try
                     {
-                        this.m_hMIDIO.send(midiData.m_midiData, 0);
+                        this.m_hMIDIO.send(midiData.m_aryValue, 0);
                     } catch(e) {
                     }
                 }
@@ -250,14 +258,12 @@ export class CPlayer
 
             if(this.m_hMIDIO != null)
             {
-                this.m_hMIDIO.send([0xB0 + nCh, 0x01,  0], nTime);
-                this.m_hMIDIO.send([0xB0 + nCh, 0x05,  0], nTime);
-                this.m_hMIDIO.send([0xB0 + nCh, 0x0A, 64], nTime);
-                this.m_hMIDIO.send([0xB0 + nCh, 0x40,  0], nTime);
-
-                this.m_hMIDIO.send([0xB0 + nCh, 0x78, 0], nTime);
-                this.m_hMIDIO.send([0xB0 + nCh, 0x79, 0], nTime);
-                this.m_hMIDIO.send([0xB0 + nCh, 0x7B, 0], nTime);
+                // Reset All Controller
+                this.m_hMIDIO.send([0xB0 + nCh, 0x79, 0], 0);
+                // All Note Off
+                this.m_hMIDIO.send([0xB0 + nCh, 0x7B, 0], 0);
+                // All Sound Off
+                this.m_hMIDIO.send([0xB0 + nCh, 0x78, 0], 0);
             }
         }
 
@@ -308,8 +314,6 @@ export class CPlayer
     //
     public stop(): void
     {
-        var nTimeCurr: number = window.performance.now();
-
         this.m_ePlayerStatus = E_PLAYER_STATUS.E_STOP;
 
         this.timer_destroy();
@@ -317,7 +321,6 @@ export class CPlayer
         for(let nCh = 0; nCh < CPlayer.MAX_CH; nCh ++)
         {
             let oCh = this.m_listChStatus[nCh];
-            let nTime: number = nTimeCurr + nCh * 20;
 
             for(let nNote = 0; nNote < 0x80; nNote ++)
             {
@@ -327,7 +330,7 @@ export class CPlayer
                 {
                     if(this.m_hMIDIO != null)
                     {
-                        this.m_hMIDIO.send([0x80 + nCh, nNote, 0], nTime);
+                        this.m_hMIDIO.send([0x80 + nCh, nNote, 0], 0);
                     }
                     nCount --;
                 }
@@ -407,18 +410,37 @@ export function create_instance(bSysEx: boolean = false, evt_success=null, evt_f
         oCResult = new CPlayer();
         oCResult.reset();
 
-        oCResult.m_bSysEx = bSysEx;
-        oCResult.evt_success = evt_success;
-        oCResult.evt_failure = evt_failure;
+        if(navigator.requestMIDIAccess != undefined)
+        {
+            oCResult.m_bSysEx = bSysEx;
+            oCResult.evt_success = evt_success;
+            oCResult.evt_failure = evt_failure;
 
-        navigator.requestMIDIAccess(
-            {sysex: oCResult.m_bSysEx}
-        ).then(evt_midi_success, evt_midi_failure);
+            navigator.requestMIDIAccess(
+                {sysex: oCResult.m_bSysEx}
+            ).then(evt_midi_success, evt_midi_failure);
+        }
 
         CPlayer.INSTANCE = oCResult;
     }
 
     return(oCResult);
+}
+
+
+// ===========================================================================
+/*!
+ * @brief プレイヤーインスタンスの破棄処理
+ */
+export function destroy_instance(): void
+{
+    if(CPlayer.INSTANCE != null)
+    {
+        CPlayer.INSTANCE.evt_success = null;
+        CPlayer.INSTANCE.evt_failure = null;
+
+        CPlayer.INSTANCE = null;
+    }
 }
 
 

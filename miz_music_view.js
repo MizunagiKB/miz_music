@@ -70,11 +70,11 @@ var miz;
                 for (var n = 0; n < 16; n++) {
                     this.m_listChannelPeak.push(0);
                 }
-                for (var n = 0; n < 256; n++) {
+                for (var n = 0; n < CViewer.PEAK_HISTORY; n++) {
                     this.m_listEventCount.push(0);
                 }
                 this.m_oCLineRenderer = d3.svg.line()
-                    .x(function (d, n) { return n * 2; })
+                    .x(function (d, n) { return n * 4; })
                     .y(function (d) { return (CViewer.HEIGHT - d); });
                 this.m_oCSVGLine = this.m_oCSVG.append("path");
                 this.m_oCSVGLine
@@ -125,8 +125,8 @@ var miz;
                     nValue = CViewer.HEIGHT;
                 }
                 this.m_listEventCount.push(nValue);
-                if (this.m_listEventCount.length > 256) {
-                    this.m_listEventCount = this.m_listEventCount.slice(1, 256);
+                if (this.m_listEventCount.length > CViewer.PEAK_HISTORY) {
+                    this.m_listEventCount = this.m_listEventCount.slice(1, CViewer.PEAK_HISTORY);
                 }
                 this.m_oCSVGLine
                     .datum(this.m_listEventCount)
@@ -145,6 +145,7 @@ var miz;
             CViewer.INSTANCE = null;
             CViewer.INTERVAL = 100;
             CViewer.HEIGHT = 96;
+            CViewer.PEAK_HISTORY = 128;
             return CViewer;
         })();
         music_viewer.CViewer = CViewer;
