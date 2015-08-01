@@ -106,14 +106,16 @@ export class CPlayer
 
             bResult = true;
 
-            // テンポ情報が含まれていれば新しい値を設定
-            if(midiData.m_nTempo > 0)
-            {
-                this.m_nTempo = midiData.m_nTempo;
-            }
-
             if((oCTrStatus.m_nStepCurr + midiData.m_nStep) < this.m_nStepCurr)
             {
+                oCTrStatus.m_nStepCurr += midiData.m_nStep;
+
+                // テンポ情報が含まれていれば新しい値を設定
+                if(midiData.m_nTempo > 0)
+                {
+                    this.m_nTempo = midiData.m_nTempo;
+                }
+
                 if(midiData.m_midiData.length > 0)
                 {
                     let nEv = midiData.m_midiData[0] & 0xF0;
@@ -141,14 +143,12 @@ export class CPlayer
                             }
                             break;
                     }
-                }
 
-                oCTrStatus.m_nStepCurr += midiData.m_nStep;
-
-                try
-                {
-                    this.m_hMIDIO.send(midiData.m_midiData, 0);
-                } catch(e) {
+                    try
+                    {
+                        this.m_hMIDIO.send(midiData.m_midiData, 0);
+                    } catch(e) {
+                    }
                 }
 
                 nPos += 1;

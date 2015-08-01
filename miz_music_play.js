@@ -65,10 +65,11 @@ var miz;
                 while (nPos < oCMIDITrack.m_listData.length) {
                     var midiData = oCMIDITrack.m_listData[nPos];
                     bResult = true;
-                    if (midiData.m_nTempo > 0) {
-                        this.m_nTempo = midiData.m_nTempo;
-                    }
                     if ((oCTrStatus.m_nStepCurr + midiData.m_nStep) < this.m_nStepCurr) {
+                        oCTrStatus.m_nStepCurr += midiData.m_nStep;
+                        if (midiData.m_nTempo > 0) {
+                            this.m_nTempo = midiData.m_nTempo;
+                        }
                         if (midiData.m_midiData.length > 0) {
                             var nEv = midiData.m_midiData[0] & 0xF0;
                             var nCh = midiData.m_midiData[0] & 0x0F;
@@ -92,12 +93,11 @@ var miz;
                                     }
                                     break;
                             }
-                        }
-                        oCTrStatus.m_nStepCurr += midiData.m_nStep;
-                        try {
-                            this.m_hMIDIO.send(midiData.m_midiData, 0);
-                        }
-                        catch (e) {
+                            try {
+                                this.m_hMIDIO.send(midiData.m_midiData, 0);
+                            }
+                            catch (e) {
+                            }
                         }
                         nPos += 1;
                     }
