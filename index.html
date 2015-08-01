@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+    <head>
+
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="description" content="WebMIDI Player" />
+        <meta name="author" content="MizunagiKB" />
+
+        <title id="id_title"></title>
+
+        <!-- Bootstrap -->
+        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
+        <!-- Optional theme -->
+        <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css" />
+
+        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+        <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Share+Tech+Mono" />
+
+        <style>
+            body
+            {
+                padding-top: 70px;
+            }
+
+            .custom-font
+            {
+                font-family: 'Share Tech Mono';
+            }
+        </style>
+
+    </head>
+
+    <body>
+
+        <nav class="navbar navbar-default navbar-fixed-top">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="#">miZ:music</a>
+                </div>
+
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <ul class="nav navbar-nav">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                                MIDI Device&nbsp;[&nbsp;<span id="id_assigned_midi_o"></span>&nbsp;]&nbsp;<span class="caret"></span>
+                            </a>
+                            <ul id="id_midi_device_o" class="dropdown-menu">
+                            </ul>
+                        </li>
+                    </ul>
+                </div><!-- /.navbar-collapse -->
+            </div>
+        </nav>
+
+        <div class="container">
+
+            <div class="alert alert-info alert-dismissible" role="alert">
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <p><span class="glyphicon glyphicon-info-sign"></span>&nbsp;MIDI送信先のMIDI Deviceを選択して下さい。</p>
+            </div>
+
+            <span id="id_alert">
+            </span>
+
+            <div class="page-header">
+                <h1 id="id_active_music">*</h1>
+            </div>
+
+            <div class="custom-font">
+
+                <svg id="id_main_screen" style="background-color: #EFEFEF;"></svg>
+                <div id="status"></div>
+                <div id="tempo"></div>
+                <div id="step"></div>
+
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Filename</th>
+                            <th>Size</th>
+                            <th>Track(s)</th>
+                            <th>#</th>
+                        </tr>
+                    </thead>
+                    <tbody id="id_music_list">
+                    </tbody>
+                </table>
+            </div>
+
+            <input type="file" id="files" name="file[]" multiple />
+
+        </div>
+
+        <div id="id_tpl_foot">
+            <div class="container">
+                <p class="text-right">Programming&nbsp;<a href="https://twitter.com/MizunagiKB">@MizunagiKB</a></p>
+            </div>
+        </div>
+
+        <script>
+            var GLOBAL = new Object();
+            GLOBAL.H_TIMER = null;
+            GLOBAL.INTERVAL = 100;
+            GLOBAL.SVG = null;
+            GLOBAL.MUSIC_DATA = [];
+
+            function handleFileSelect(evt)
+            {
+                var files = evt.target.files;
+
+                for(var n = 0; n < files.length; n ++)
+                {
+                    var reader = new FileReader();
+
+                    reader.miz_filename = files[n].name;
+                    reader.miz_filesize = files[n].size;
+
+                    reader.onload = function(f)
+                    {
+                        var mData = music_reader(f.target.result);
+                        var fInfo = {
+                            "filename": f.target.miz_filename,
+                            "filesize": f.target.miz_filesize
+                        };
+
+                        append_file(fInfo, mData);
+                    };
+
+                    reader.readAsArrayBuffer(files[n]);
+                }
+            }
+
+            document.getElementById('files').addEventListener('change', handleFileSelect, false);
+
+        </script>
+
+        <script type="text/javascript">
+
+            // ---------------------------------------------- Global Object(s)
+            // --------------------------------------------------- function(s)
+            // ===============================================================
+            /*!
+             */
+            function evt_success(oCEvt, listMIDII, listMIDIO)
+            {
+                var TPL_MIDI_DEVICE_O = Hogan.compile(
+                    ''
+                    + '<li><a href="#">None</a></li>'
+                    + '<li role="separator" class="divider"></li>'
+                    + '{{#listMIDIDevice}}'
+                    + '<li><a href="javascript:evt_assign_midio({{idx}});" href="#">{{name}}</a></li>'
+                    + '{{/listMIDIDevice}}'
+                );
+
+                var listMIDIDevice = [];
+
+                for(var n = 0; n < listMIDIO.length; n ++)
+                {
+                    listMIDIDevice.push(
+                        {"idx": n, "name": listMIDIO[n].name}
+                    );
+
+                    console.log(listMIDIO[n]);
+                }
+
+                $("#id_midi_device_o").html(
+                    TPL_MIDI_DEVICE_O.render(
+                        {"listMIDIDevice": listMIDIDevice}
+                    )
+                );
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function evt_failure(oCEvt)
+            {
+                var TPL_ALERT = Hogan.compile(
+                    ''
+                    + '<div class="alert alert-danger alert-dismissible" role="alert">'
+                    + '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>'
+                    + '<p><span class="glyphicon glyphicon-exclamation-sign"></span>&nbsp;{{message}}</p>'
+                    + '</div>'
+                )
+
+                $("#id_alert").html(
+                    TPL_ALERT.render({"message": oCEvt})
+                )
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function append_file(fInfo, mData)
+            {
+                var bFound = false;
+
+                for(var n = 0; n < GLOBAL.MUSIC_DATA.length; n ++)
+                {
+                    var refData = GLOBAL.MUSIC_DATA[n];
+
+                    if(fInfo.filename == refData.filename)
+                    {
+                        bFound = true;
+                        break;
+                    }
+
+                    if(fInfo.filesize == refData.filesize)
+                    {
+                        bFound = true;
+                        break;
+                    }
+                }
+
+                if(bFound == false)
+                {
+                    GLOBAL.MUSIC_DATA.push(
+                        {
+                            "filename": fInfo.filename,
+                            "filesize": fInfo.filesize,
+                            "filedata": mData
+                        }
+                    );
+                }
+
+                update_list();
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function file_remove(nIdx)
+            {
+                GLOBAL.MUSIC_DATA.splice(nIdx, 1);
+                update_list();
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function update_list()
+            {
+                var TPL_MUSIC_LIST = Hogan.compile(
+                    ''
+                    + '{{#music_info}}'
+                    + '<tr>'
+                    + '<td>'
+                    + '<div class="btn-group" role="group" aria-label="">'
+                    + '<button type="button" class="btn btn-default" onclick="evt_music_stop();"><span class="glyphicon glyphicon-stop"></span></button>'
+                    + '<button type="button" class="btn btn-default" onclick="evt_music_attach({{idx}});"><span class="glyphicon glyphicon-play"></span></button>'
+                    + '</div>'
+                    + '</td>'
+                    + '<th>{{filename}}</th>'
+                    + '<td>{{filesize}}</td>'
+                    + '<td>{{track_count}}</td>'
+                    + '<td>'
+                    + '<div class="btn-group" role="group" aria-label="">'
+                    + '<button type="button" class="btn btn-danger" onclick="evt_music_detach({{idx}});"><span class="glyphicon glyphicon-remove"></span></button>'
+                    + '</div>'
+                    + '</td>'
+                    + '</tr>'
+                    + '{{/music_info}}'
+                );
+                var listMusicInfo = [];
+
+                for(var n = 0; n < GLOBAL.MUSIC_DATA.length; n ++)
+                {
+                    var refData = GLOBAL.MUSIC_DATA[n];
+
+                    listMusicInfo.push(
+                        {
+                            "filename": refData.filename,
+                            "filesize": refData.filesize,
+                            "track_count": refData.filedata.m_listTrack.length,
+                            "idx": n
+                        }
+                    );
+                }
+
+                $("#id_music_list").html(
+                    TPL_MUSIC_LIST.render({"music_info": listMusicInfo})
+                );
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function evt_assign_midio(nDeviceID)
+            {
+                $("#id_assigned_midi_o").text(
+                    miz.music_player.CPlayer.INSTANCE.assign_midio(nDeviceID).name
+                );
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function evt_music_attach(nIdx)
+            {
+                $("#id_active_music").html(
+                    GLOBAL.MUSIC_DATA[nIdx].filename
+                );
+
+                miz.music_player.CPlayer.INSTANCE.stop();
+
+                miz.music_player.CPlayer.INSTANCE.load(
+                    GLOBAL.MUSIC_DATA[nIdx].filedata
+                );
+                miz.music_player.CPlayer.INSTANCE.play();
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function evt_music_detach(nIdx)
+            {
+                file_remove(nIdx);
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function evt_music_play()
+            {
+                miz.music_player.CPlayer.INSTANCE.play();
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function evt_music_stop()
+            {
+                miz.music_player.CPlayer.INSTANCE.stop();
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function evt_update()
+            {
+                var oCViewer = miz.music_viewer.CViewer.INSTANCE;
+
+                oCViewer.update(miz.music_player.CPlayer.INSTANCE);
+            }
+
+            // ===============================================================
+            /*!
+             */
+            window.onload = function()
+            {
+                miz.music_player.create_instance(
+                    true,
+                    evt_success,
+                    evt_failure
+                );
+
+                miz.music_viewer.create_instance("#id_main_screen")
+
+                GLOBAL.H_TIMER = setInterval(evt_update, GLOBAL.INTERVAL);
+            }
+
+        </script>
+
+        <!-- jQuery-1.11.0 http://jquery.com/ -->
+        <script type="text/javascript" src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+
+        <!-- Bootstrap http://twitter.github.io/bootstrap/index.html -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+
+        <!-- Hogan.js http://twitter.github.io/hogan.js/ -->
+        <script src="https://twitter.github.io/hogan.js/builds/3.0.1/hogan-3.0.1.js"></script>
+
+        <script charset="utf-8" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+
+        <script type="text/javascript" src="miz_music.js"></script>
+        <script type="text/javascript" src="miz_music_conv.js"></script>
+        <script type="text/javascript" src="miz_music_play.js"></script>
+        <script type="text/javascript" src="miz_music_view.js"></script>
+
+    </body>
+</html>
