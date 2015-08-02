@@ -101,9 +101,13 @@
                     <tbody id="id_music_list">
                     </tbody>
                 </table>
+
             </div>
 
-            <input type="file" id="files" name="file[]" multiple />
+            <div id="id_filedrop" class="well">
+                <p class="text-center">Drop files here</p>
+            </div>
+            <input id="id_fileopen" type="file" name="file[]" multiple />
 
         </div>
 
@@ -113,46 +117,15 @@
             </div>
         </div>
 
-        <script>
+        <script type="text/javascript">
+
+            // ---------------------------------------------- Global Object(s)
             var GLOBAL = new Object();
             GLOBAL.H_TIMER = null;
             GLOBAL.INTERVAL = 100;
             GLOBAL.SVG = null;
             GLOBAL.MUSIC_DATA = [];
 
-            function handleFileSelect(evt)
-            {
-                var files = evt.target.files;
-
-                for(var n = 0; n < files.length; n ++)
-                {
-                    var reader = new FileReader();
-
-                    reader.miz_filename = files[n].name;
-                    reader.miz_filesize = files[n].size;
-
-                    reader.onload = function(f)
-                    {
-                        var mData = music_reader(f.target.result);
-                        var fInfo = {
-                            "filename": f.target.miz_filename,
-                            "filesize": f.target.miz_filesize
-                        };
-
-                        append_file(fInfo, mData);
-                    };
-
-                    reader.readAsArrayBuffer(files[n]);
-                }
-            }
-
-            document.getElementById('files').addEventListener('change', handleFileSelect, false);
-
-        </script>
-
-        <script type="text/javascript">
-
-            // ---------------------------------------------- Global Object(s)
             // --------------------------------------------------- function(s)
             // ===============================================================
             /*!
@@ -175,8 +148,6 @@
                     listMIDIDevice.push(
                         {"idx": n, "name": listMIDIO[n].name}
                     );
-
-                    console.log(listMIDIO[n]);
                 }
 
                 $("#id_midi_device_o").html(
@@ -202,6 +173,67 @@
                 $("#id_alert").html(
                     TPL_ALERT.render({"message": oCEvt})
                 )
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function evt_dragover(oCEvt)
+            {
+                oCEvt.stopPropagation();
+                oCEvt.preventDefault();
+
+                oCEvt.originalEvent.dataTransfer.dropEffect = "copy";
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function evt_drop(oCEvt)
+            {
+                oCEvt.stopPropagation();
+                oCEvt.preventDefault();
+
+                fileloader(oCEvt, oCEvt.originalEvent.dataTransfer.files);
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function evt_fileloader(oCEvt)
+            {
+                fileloader(oCEvt, oCEvt.target.files);
+            }
+
+            // ===============================================================
+            /*!
+             */
+            function fileloader(oCEvt, listFile)
+            {
+                for(var n = 0; n < listFile.length; n ++)
+                {
+                    var reader = new FileReader();
+
+                    reader.miz_filename = listFile[n].name;
+                    reader.miz_filesize = listFile[n].size;
+
+                    reader.onload = function(f)
+                    {
+                        var mData = music_reader(f.target.result);
+
+                        if(mData != null)
+                        {
+                            var fInfo = {
+                                "filename": f.target.miz_filename,
+                                "filesize": f.target.miz_filesize
+                            };
+
+                            append_file(fInfo, mData);
+                        }
+                    };
+
+                    reader.readAsArrayBuffer(listFile[n]);
+                }
             }
 
             // ===============================================================
@@ -384,6 +416,11 @@
                 );
 
                 miz.music_viewer.create_instance("#id_main_screen")
+
+                $("#id_filedrop").on("dragover", evt_dragover);
+                $("#id_filedrop").on("drop", evt_drop);
+
+                $("#id_fileopen").on("change", evt_fileloader);
 
                 GLOBAL.H_TIMER = setInterval(evt_update, GLOBAL.INTERVAL);
             }
