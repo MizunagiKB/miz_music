@@ -301,15 +301,23 @@ class CMusicParserSMF
 
 
 
-    parse_MThd(): void
+    parse_MThd(): boolean
     {
-        this.m_oCParser.extract_string(0, 4);
+        let bResult: boolean = false;
+        let strMThd: string = this.m_oCParser.extract_string(0, 4);
 
-        this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_I32, 4);
-        this.m_nFmt = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 8);
-        this.m_nTrk = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 10);
-        this.m_nTimeDiv = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 12);
-        this.m_strTitle = ""
+        if(strMThd == "MThd")
+        {
+            this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_I32, 4);
+            this.m_nFmt = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 8);
+            this.m_nTrk = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 10);
+            this.m_nTimeDiv = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 12);
+            this.m_strTitle = ""
+
+            bResult = true;
+        }
+
+        return(bResult);
     }
 
     parse_MTrk(): miz.music.CMIDITrack
@@ -349,24 +357,29 @@ class CMusicParserSMF
 
     parse(): miz.music.CMIDIMusic
     {
-        let oCMIDIMusic: miz.music.CMIDIMusic = new miz.music.CMIDIMusic;
+        let oCMIDIMusic: miz.music.CMIDIMusic = null;
         let oCMIDITrack: miz.music.CMIDITrack = null;
         let nSize = this.m_oCParser.m_aryData.length;
 
         // parse MThd
-        this.parse_MThd();
-        this.m_nPos += 14;
 
-        for(let nTrack: number = 0; nTrack < this.m_nTrk; nTrack ++)
+        if(this.parse_MThd() == true)
         {
-            this.m_nCurrentEv = null;
-            oCMIDITrack = this.parse_MTrk();
+            this.m_nPos += 14;
 
-            oCMIDIMusic.m_listTrack.push(oCMIDITrack);
+            oCMIDIMusic = new miz.music.CMIDIMusic();
+
+            for(let nTrack: number = 0; nTrack < this.m_nTrk; nTrack ++)
+            {
+                this.m_nCurrentEv = null;
+                oCMIDITrack = this.parse_MTrk();
+
+                oCMIDIMusic.m_listTrack.push(oCMIDITrack);
+            }
+
+            oCMIDIMusic.m_nTimeDiv = this.m_nTimeDiv;
+            oCMIDIMusic.m_strTitle = this.m_strTitle;
         }
-
-        oCMIDIMusic.m_nTimeDiv = this.m_nTimeDiv;
-        oCMIDIMusic.m_strTitle = this.m_strTitle;
 
         // console.log("m_nTimeDiv: " + oCMIDIMusic.m_nTimeDiv);
         // console.log("m_strTitle: " + oCMIDIMusic.m_strTitle);

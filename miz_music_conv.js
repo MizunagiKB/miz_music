@@ -209,12 +209,17 @@ var CMusicParserSMF = (function () {
         return (oCData);
     };
     CMusicParserSMF.prototype.parse_MThd = function () {
-        this.m_oCParser.extract_string(0, 4);
-        this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_I32, 4);
-        this.m_nFmt = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 8);
-        this.m_nTrk = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 10);
-        this.m_nTimeDiv = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 12);
-        this.m_strTitle = "";
+        var bResult = false;
+        var strMThd = this.m_oCParser.extract_string(0, 4);
+        if (strMThd == "MThd") {
+            this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_I32, 4);
+            this.m_nFmt = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 8);
+            this.m_nTrk = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 10);
+            this.m_nTimeDiv = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16, 12);
+            this.m_strTitle = "";
+            bResult = true;
+        }
+        return (bResult);
     };
     CMusicParserSMF.prototype.parse_MTrk = function () {
         var oCMIDITrack = new miz.music.CMIDITrack();
@@ -237,18 +242,20 @@ var CMusicParserSMF = (function () {
         return (oCMIDITrack);
     };
     CMusicParserSMF.prototype.parse = function () {
-        var oCMIDIMusic = new miz.music.CMIDIMusic;
+        var oCMIDIMusic = null;
         var oCMIDITrack = null;
         var nSize = this.m_oCParser.m_aryData.length;
-        this.parse_MThd();
-        this.m_nPos += 14;
-        for (var nTrack = 0; nTrack < this.m_nTrk; nTrack++) {
-            this.m_nCurrentEv = null;
-            oCMIDITrack = this.parse_MTrk();
-            oCMIDIMusic.m_listTrack.push(oCMIDITrack);
+        if (this.parse_MThd() == true) {
+            this.m_nPos += 14;
+            oCMIDIMusic = new miz.music.CMIDIMusic();
+            for (var nTrack = 0; nTrack < this.m_nTrk; nTrack++) {
+                this.m_nCurrentEv = null;
+                oCMIDITrack = this.parse_MTrk();
+                oCMIDIMusic.m_listTrack.push(oCMIDITrack);
+            }
+            oCMIDIMusic.m_nTimeDiv = this.m_nTimeDiv;
+            oCMIDIMusic.m_strTitle = this.m_strTitle;
         }
-        oCMIDIMusic.m_nTimeDiv = this.m_nTimeDiv;
-        oCMIDIMusic.m_strTitle = this.m_strTitle;
         return (oCMIDIMusic);
     };
     return CMusicParserSMF;
