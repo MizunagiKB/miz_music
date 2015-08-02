@@ -77,11 +77,11 @@
             <span id="id_alert">
             </span>
 
-            <div class="page-header">
-                <h1 id="id_active_music">*</h1>
-            </div>
-
             <div class="custom-font">
+
+                <div class="page-header">
+                    <h3 id="id_active_music">*</h3>
+                </div>
 
                 <svg id="id_main_screen" style="background-color: #EFEFEF;"></svg>
                 <div id="status"></div>
@@ -316,8 +316,18 @@
              */
             function evt_music_attach(nIdx)
             {
+                var TPL_TITLE = Hogan.compile(
+                    ''
+                    + '{{title}}</br ><small>{{filename}}</small>'
+                );
+
                 $("#id_active_music").html(
-                    GLOBAL.MUSIC_DATA[nIdx].filename
+                    TPL_TITLE.render(
+                        {
+                            "title": GLOBAL.MUSIC_DATA[nIdx].filedata.m_strTitle,
+                            "filename": GLOBAL.MUSIC_DATA[nIdx].filename
+                        }
+                    )
                 );
 
                 miz.music_player.CPlayer.INSTANCE.stop();
