@@ -5,6 +5,7 @@
  */
 // -------------------------------------------------------------- reference(s)
 /// <reference path="./miz_music.ts" />
+/// <reference path="./miz_music_conv_rcp.ts" />
 
 
 // -------------------------------------------------------------- interface(s)
@@ -12,6 +13,8 @@
 // ------------------------------------------------------------------- enum(s)
 enum E_EXTRACT_TYPE
 {
+    E_EXTRACT_TYPE_I16_LE,
+    E_EXTRACT_TYPE_U16_LE,
     E_EXTRACT_TYPE_I16,
     E_EXTRACT_TYPE_U16,
     E_EXTRACT_TYPE_I32
@@ -410,30 +413,46 @@ class CMusicParser
 
         switch(eET)
         {
-            case E_EXTRACT_TYPE.E_EXTRACT_TYPE_I16:
-            case E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16:
-            {
-                nValue |= this.m_aryData[nPos + 0] << 8;
-                nValue |= this.m_aryData[nPos + 1];
-
-                if(eET == E_EXTRACT_TYPE.E_EXTRACT_TYPE_I16)
+            case E_EXTRACT_TYPE.E_EXTRACT_TYPE_I16_LE:
+            case E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16_LE:
                 {
-                    if((nValue & 0x1000) != 0)
+                    nValue |= this.m_aryData[nPos + 0];
+                    nValue |= this.m_aryData[nPos + 1] << 8;
+
+                    if(eET == E_EXTRACT_TYPE.E_EXTRACT_TYPE_I16_LE)
                     {
-                        nValue -= 0x10000;
+                        if((nValue & 0x1000) != 0)
+                        {
+                            nValue -= 0x10000;
+                        }
                     }
                 }
-            }
-            break;
+                break;
+
+            case E_EXTRACT_TYPE.E_EXTRACT_TYPE_I16:
+            case E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16:
+                {
+                    nValue |= this.m_aryData[nPos + 0] << 8;
+                    nValue |= this.m_aryData[nPos + 1];
+
+                    if(eET == E_EXTRACT_TYPE.E_EXTRACT_TYPE_I16)
+                    {
+                        if((nValue & 0x1000) != 0)
+                        {
+                            nValue -= 0x10000;
+                        }
+                    }
+                }
+                break;
 
             case E_EXTRACT_TYPE.E_EXTRACT_TYPE_I32:
-            {
-                nValue |= this.m_aryData[nPos + 0] << 24;
-                nValue |= this.m_aryData[nPos + 1] << 16;
-                nValue |= this.m_aryData[nPos + 2] << 8;
-                nValue |= this.m_aryData[nPos + 3];
-            }
-            break;
+                {
+                    nValue |= this.m_aryData[nPos + 0] << 24;
+                    nValue |= this.m_aryData[nPos + 1] << 16;
+                    nValue |= this.m_aryData[nPos + 2] << 8;
+                    nValue |= this.m_aryData[nPos + 3];
+                }
+                break;
         }
 
         return(nValue);
@@ -466,11 +485,18 @@ class CMusicParser
 function music_reader(raw: ArrayBuffer): miz.music.CMIDIMusic
 {
     var o: CMusicParser = new CMusicParser(raw);
+
     var oCSMF: CMusicParserSMF = new CMusicParserSMF(o);
+    var oCRCP: CMusicParserRCP = new CMusicParserRCP(o);
+    var oCMIDIMusic: miz.music.CMIDIMusic = null;
 
-    //oCSMF.parse();
+    oCMIDIMusic = oCSMF.parse();
+    if(oCMIDIMusic == null)
+    {
+        oCMIDIMusic = oCRCP.parse();
+    }
 
-    return(oCSMF.parse());
+    return(oCMIDIMusic);
 }
 
 

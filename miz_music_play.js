@@ -72,7 +72,9 @@ var miz;
                                 {
                                     var nCh = midiData.m_aryValue[0] & 0x0F;
                                     var nNote = midiData.m_aryValue[1];
-                                    this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
+                                    if (this.m_listChStatus[nCh].m_listNote[nNote] > 0) {
+                                        this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
+                                    }
                                 }
                                 break;
                             case miz.music.E_MIDI_MSG.NOTE_ON:
@@ -84,7 +86,9 @@ var miz;
                                         this.m_listChStatus[nCh].m_listNote[nNote] += 1;
                                     }
                                     else {
-                                        this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
+                                        if (this.m_listChStatus[nCh].m_listNote[nNote] > 0) {
+                                            this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
+                                        }
                                     }
                                 }
                                 break;
