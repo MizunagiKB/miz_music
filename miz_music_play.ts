@@ -117,7 +117,10 @@ export class CPlayer
                             let nCh = midiData.m_aryValue[0] & 0x0F;
                             let nNote: number = midiData.m_aryValue[1];
 
-                            this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
+                            if(this.m_listChStatus[nCh].m_listNote[nNote] > 0)
+                            {
+                                this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
+                            }
                         }
                         break;
 
@@ -131,7 +134,10 @@ export class CPlayer
                             {
                                 this.m_listChStatus[nCh].m_listNote[nNote] += 1;
                             } else {
-                                this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
+                                if(this.m_listChStatus[nCh].m_listNote[nNote] > 0)
+                                {
+                                    this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
+                                }
                             }
                         }
                         break;

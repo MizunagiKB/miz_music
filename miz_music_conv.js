@@ -5,11 +5,14 @@
  */
 // -------------------------------------------------------------- reference(s)
 /// <reference path="./miz_music.ts" />
+/// <reference path="./miz_music_conv_rcp.ts" />
 var E_EXTRACT_TYPE;
 (function (E_EXTRACT_TYPE) {
-    E_EXTRACT_TYPE[E_EXTRACT_TYPE["E_EXTRACT_TYPE_I16"] = 0] = "E_EXTRACT_TYPE_I16";
-    E_EXTRACT_TYPE[E_EXTRACT_TYPE["E_EXTRACT_TYPE_U16"] = 1] = "E_EXTRACT_TYPE_U16";
-    E_EXTRACT_TYPE[E_EXTRACT_TYPE["E_EXTRACT_TYPE_I32"] = 2] = "E_EXTRACT_TYPE_I32";
+    E_EXTRACT_TYPE[E_EXTRACT_TYPE["E_EXTRACT_TYPE_I16_LE"] = 0] = "E_EXTRACT_TYPE_I16_LE";
+    E_EXTRACT_TYPE[E_EXTRACT_TYPE["E_EXTRACT_TYPE_U16_LE"] = 1] = "E_EXTRACT_TYPE_U16_LE";
+    E_EXTRACT_TYPE[E_EXTRACT_TYPE["E_EXTRACT_TYPE_I16"] = 2] = "E_EXTRACT_TYPE_I16";
+    E_EXTRACT_TYPE[E_EXTRACT_TYPE["E_EXTRACT_TYPE_U16"] = 3] = "E_EXTRACT_TYPE_U16";
+    E_EXTRACT_TYPE[E_EXTRACT_TYPE["E_EXTRACT_TYPE_I32"] = 4] = "E_EXTRACT_TYPE_I32";
 })(E_EXTRACT_TYPE || (E_EXTRACT_TYPE = {}));
 /*!
  */
@@ -270,6 +273,18 @@ var CMusicParser = (function () {
     CMusicParser.prototype.extract_number = function (eET, nPos) {
         var nValue = 0;
         switch (eET) {
+            case E_EXTRACT_TYPE.E_EXTRACT_TYPE_I16_LE:
+            case E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16_LE:
+                {
+                    nValue |= this.m_aryData[nPos + 0];
+                    nValue |= this.m_aryData[nPos + 1] << 8;
+                    if (eET == E_EXTRACT_TYPE.E_EXTRACT_TYPE_I16_LE) {
+                        if ((nValue & 0x1000) != 0) {
+                            nValue -= 0x10000;
+                        }
+                    }
+                }
+                break;
             case E_EXTRACT_TYPE.E_EXTRACT_TYPE_I16:
             case E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16:
                 {
@@ -311,5 +326,11 @@ var CMusicParser = (function () {
 function music_reader(raw) {
     var o = new CMusicParser(raw);
     var oCSMF = new CMusicParserSMF(o);
-    return (oCSMF.parse());
+    var oCRCP = new CMusicParserRCP(o);
+    var oCMIDIMusic = null;
+    oCMIDIMusic = oCSMF.parse();
+    if (oCMIDIMusic == null) {
+        oCMIDIMusic = oCRCP.parse();
+    }
+    return (oCMIDIMusic);
 }

@@ -11,6 +11,7 @@
         "./d3/d3.d.ts",
         "./miz_music.ts",
         "./miz_music_conv.ts",
+        "./miz_music_conv_rcp.ts",
         "./miz_music_play.ts",
         "./miz_music_view.ts"
     ]
