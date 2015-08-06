@@ -276,6 +276,7 @@ class CMusicParserRCP
         let listLoopStack: Array<CRCPLoop> = [];
         let n: number = oCTWork.m_nPos;
         let bMeasureEnd: boolean = false;
+        let bComment: boolean = false;
         let oCRCPExc: CRCPStep = null;
         let nEXCGate: number = 0;
         let nEXCVelo: number = 0;
@@ -313,7 +314,11 @@ class CMusicParserRCP
                     case 0x95:
                     case 0x96:
                     case 0x97:
-                        nStep = this.m_oCParser.m_aryData[nAddr + 1];
+                        {
+                            console.log("EXC " + nEv);
+
+                            nStep = this.m_oCParser.m_aryData[nAddr + 1];
+                        }
                         break;
 
                     case 0x98:
@@ -326,6 +331,8 @@ class CMusicParserRCP
                                 + " " + this.m_oCParser.m_aryData[nAddr + 2].toString()
                                 + " " + this.m_oCParser.m_aryData[nAddr + 3].toString()
                             );
+
+                            bComment = false;
 
                             oCRCPExc = new CRCPStep();
                             oCRCPExc.m_nStep = oCTWork.m_nStepTotal;
@@ -497,83 +504,89 @@ class CMusicParserRCP
                         break;
 
                     case 0xF5:
+                        nStep = 0;
+                        break;
+
                     case 0xF6:
+                        bComment = true;
                         nStep = 0;
                         break;
 
                     case 0xF7:
                         {
-                            /*console.log(
+                            console.log(
                                 ""
-                                + " " + this.m_oCParser.m_aryData[nAddr + 0].toString()
-                                + " " + this.m_oCParser.m_aryData[nAddr + 1].toString()
+                                + " " + this.m_oCParser.m_aryData[nAddr + 0].toString(16)
+                                + " " + this.m_oCParser.m_aryData[nAddr + 1].toString(16)
                                 + " " + this.m_oCParser.m_aryData[nAddr + 2].toString(16)
                                 + " " + this.m_oCParser.m_aryData[nAddr + 3].toString(16)
-                            );*/
+                            );
 
-                            for(let n: number = 2; n < 4; n ++)
+                            if(bComment == false)
                             {
-                                let nEXCValue: number = this.m_oCParser.m_aryData[nAddr + n];
-
-                                switch(nEXCValue)
+                                for(let n: number = 2; n < 4; n ++)
                                 {
-                                    case 0x80: //GT
-                                        oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCGate);
-                                        nEXCCSum += nEXCGate;
-                                        nEXCCSum &= 0x007F;
-                                        break;
+                                    let nEXCValue: number = this.m_oCParser.m_aryData[nAddr + n];
 
-                                    case 0x81: //VE
-                                        oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCVelo);
-                                        nEXCCSum += nEXCVelo;
-                                        nEXCCSum &= 0x007F;
-                                        break;
-
-                                    case 0x82: //CH
-                                        oCRCPExc.m_oCMIDIData.m_aryValue.push(oCTWork.m_nCh);
-                                        nEXCCSum += oCTWork.m_nCh;
-                                        nEXCCSum &= 0x007F;
-                                        break;
-
-                                    case 0x83:
-                                        nEXCCSum = 0x00;
-                                        break;
-
-                                    case 0x84:
-                                        {
-                                            nEXCCSum = 0x80 - nEXCCSum;
-                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCCSum);
-                                        }
-                                        break;
-
-                                    case 0xF7:
-                                        {
-                                            let nSize: number = oCRCPExc.m_oCMIDIData.m_aryValue.length;
-                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(0xF0);
-                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nSize);
-
-                                            listCRCPStep.push(oCRCPExc);
-                                            oCRCPExc = null;
-                                        }
-                                        break;
-
-                                    default:
-                                        {
-                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCValue);
-
-                                            nEXCCSum += nEXCValue;
+                                    switch(nEXCValue)
+                                    {
+                                        case 0x80: //GT
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCGate);
+                                            nEXCCSum += nEXCGate;
                                             nEXCCSum &= 0x007F;
-                                            //console.log(nEXCValue.toString(16) + " " + nEXCCSum.toString(16));
-                                        }
-                                        break;
-                                }
+                                            break;
 
-                                if(nEXCValue == 0xF7)
-                                {
-                                    break;
+                                        case 0x81: //VE
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCVelo);
+                                            nEXCCSum += nEXCVelo;
+                                            nEXCCSum &= 0x007F;
+                                            break;
+
+                                        case 0x82: //CH
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(oCTWork.m_nCh);
+                                            nEXCCSum += oCTWork.m_nCh;
+                                            nEXCCSum &= 0x007F;
+                                            break;
+
+                                        case 0x83:
+                                            nEXCCSum = 0x00;
+                                            break;
+
+                                        case 0x84:
+                                            {
+                                                nEXCCSum = 0x80 - nEXCCSum;
+                                                oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCCSum);
+                                            }
+                                            break;
+
+                                        case 0xF7:
+                                            {
+                                                let nSize: number = oCRCPExc.m_oCMIDIData.m_aryValue.length;
+                                                oCRCPExc.m_oCMIDIData.m_aryValue.push(0xF0);
+                                                oCRCPExc.m_oCMIDIData.m_aryValue.push(nSize);
+
+                                                listCRCPStep.push(oCRCPExc);
+                                                oCRCPExc = null;
+                                            }
+                                            break;
+
+                                        default:
+                                            {
+                                                oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCValue);
+
+                                                nEXCCSum += nEXCValue;
+                                                nEXCCSum &= 0x007F;
+                                                //console.log(nEXCValue.toString(16) + " " + nEXCCSum.toString(16));
+                                            }
+                                            break;
+                                    }
+
+                                    if(nEXCValue == 0xF7)
+                                    {
+                                        break;
+                                    }
                                 }
                             }
-
                             nStep = 0;
                         }
                         break;
@@ -690,7 +703,7 @@ class CMusicParserRCP
     // -----------------------------------------------------------------------
     /*!
      */
-    parse_track(nCh: number, nTrackSize: number): miz.music.CMIDITrack
+    parse_track(nCh: number, nStep: number, nTrackSize: number): miz.music.CMIDITrack
     {
         let oCRCPStep: CRCPStep = null;
         let listCRCPStep: Array<CRCPStep> = [];
@@ -698,6 +711,7 @@ class CMusicParserRCP
 
         oCTWork.m_nCh = nCh;
         oCTWork.m_nTrackSize = nTrackSize;
+        oCTWork.m_nStepTotal = nStep;
         oCTWork.m_nSequence = 0x100;
         oCTWork.m_nTrackAddr = this.m_nPos;
         oCTWork.m_nPos = 0;
@@ -825,11 +839,11 @@ class CMusicParserRCP
                 {
                     if(nCh < 0x10)
                     {
-                        //console.log("-");
-                        //console.log("CH " + nCh + " : TR " + nTrack, " : ST " + nStep);
+                        console.log("-");
+                        console.log("CH " + nCh + " : TR " + nTrack, " : ST " + nStep);
 
                         oCMIDIMusic.m_listTrack.push(
-                            this.parse_track(nCh, nDataSize - 0x2C)
+                            this.parse_track(nCh, nStep, nDataSize - 0x2C)
                         );
                     }
                 }
