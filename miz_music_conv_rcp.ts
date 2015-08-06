@@ -52,6 +52,9 @@ class CRCPStep
     public m_oCMIDIData: miz.music.CMIDIData = null;
 }
 
+// ---------------------------------------------------------------------------
+/*!
+ */
 class CRCPLoop
 {
     public m_nPos: number = 0;
@@ -64,8 +67,7 @@ class CRCPLoop
 class CMusicParserRCP
 {
     m_oCParser: CMusicParser;
-    m_nPos: number;
-    m_nFmt: number;
+    m_nPos: number = 0;
     m_nTrk: number;
     m_nTimeDiv: number;
     m_nTempo: number;
@@ -76,9 +78,6 @@ class CMusicParserRCP
     m_nBias: number;
 
     m_strTitle: string;
-
-    m_nStep: number;
-    m_nCurrentEv: number;
 
     constructor(o: CMusicParser)
     {
@@ -277,6 +276,10 @@ class CMusicParserRCP
         let listLoopStack: Array<CRCPLoop> = [];
         let n: number = oCTWork.m_nPos;
         let bMeasureEnd: boolean = false;
+        let oCRCPExc: CRCPStep = null;
+        let nEXCGate: number = 0;
+        let nEXCVelo: number = 0;
+        let nEXCCSum: number = 0;
 
         while(n < oCTWork.m_nTrackSize)
         {
@@ -302,6 +305,43 @@ class CMusicParserRCP
 
                 switch(nEv)
                 {
+                    case 0x90:
+                    case 0x91:
+                    case 0x92:
+                    case 0x93:
+                    case 0x94:
+                    case 0x95:
+                    case 0x96:
+                    case 0x97:
+                        nStep = this.m_oCParser.m_aryData[nAddr + 1];
+                        break;
+
+                    case 0x98:
+                        {
+                            console.assert(oCRCPExc == null);
+                            console.log(
+                                ""
+                                + " " + this.m_oCParser.m_aryData[nAddr + 0].toString()
+                                + " " + this.m_oCParser.m_aryData[nAddr + 1].toString()
+                                + " " + this.m_oCParser.m_aryData[nAddr + 2].toString()
+                                + " " + this.m_oCParser.m_aryData[nAddr + 3].toString()
+                            );
+
+                            oCRCPExc = new CRCPStep();
+                            oCRCPExc.m_nStep = oCTWork.m_nStepTotal;
+                            oCRCPExc.m_nSequence = oCTWork.m_nSequence;
+
+                            oCRCPExc.m_oCMIDIData = new miz.music.CMIDIData();
+                            oCRCPExc.m_oCMIDIData.m_eMMsg = miz.music.E_MIDI_MSG.SYS_EX_F0;
+                            oCRCPExc.m_oCMIDIData.m_eMEvt = 0;
+
+                            nEXCGate = this.m_oCParser.m_aryData[nAddr + 2];
+                            nEXCVelo = this.m_oCParser.m_aryData[nAddr + 3];
+
+                            nStep = this.m_oCParser.m_aryData[nAddr + 1];
+                        }
+                        break;
+
                     case 0xE2:
                         {
                             let oCMIDIData = null;
@@ -458,8 +498,84 @@ class CMusicParserRCP
 
                     case 0xF5:
                     case 0xF6:
-                    case 0xF7:
                         nStep = 0;
+                        break;
+
+                    case 0xF7:
+                        {
+                            /*console.log(
+                                ""
+                                + " " + this.m_oCParser.m_aryData[nAddr + 0].toString()
+                                + " " + this.m_oCParser.m_aryData[nAddr + 1].toString()
+                                + " " + this.m_oCParser.m_aryData[nAddr + 2].toString(16)
+                                + " " + this.m_oCParser.m_aryData[nAddr + 3].toString(16)
+                            );*/
+
+                            for(let n: number = 2; n < 4; n ++)
+                            {
+                                let nEXCValue: number = this.m_oCParser.m_aryData[nAddr + n];
+
+                                switch(nEXCValue)
+                                {
+                                    case 0x80: //GT
+                                        oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCGate);
+                                        nEXCCSum += nEXCGate;
+                                        nEXCCSum &= 0x007F;
+                                        break;
+
+                                    case 0x81: //VE
+                                        oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCVelo);
+                                        nEXCCSum += nEXCVelo;
+                                        nEXCCSum &= 0x007F;
+                                        break;
+
+                                    case 0x82: //CH
+                                        oCRCPExc.m_oCMIDIData.m_aryValue.push(oCTWork.m_nCh);
+                                        nEXCCSum += oCTWork.m_nCh;
+                                        nEXCCSum &= 0x007F;
+                                        break;
+
+                                    case 0x83:
+                                        nEXCCSum = 0x00;
+                                        break;
+
+                                    case 0x84:
+                                        {
+                                            nEXCCSum = 0x80 - nEXCCSum;
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCCSum);
+                                        }
+                                        break;
+
+                                    case 0xF7:
+                                        {
+                                            let nSize: number = oCRCPExc.m_oCMIDIData.m_aryValue.length;
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(0xF0);
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nSize);
+
+                                            listCRCPStep.push(oCRCPExc);
+                                            oCRCPExc = null;
+                                        }
+                                        break;
+
+                                    default:
+                                        {
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCValue);
+
+                                            nEXCCSum += nEXCValue;
+                                            nEXCCSum &= 0x007F;
+                                            //console.log(nEXCValue.toString(16) + " " + nEXCCSum.toString(16));
+                                        }
+                                        break;
+                                }
+
+                                if(nEXCValue == 0xF7)
+                                {
+                                    break;
+                                }
+                            }
+
+                            nStep = 0;
+                        }
                         break;
 
                     case 0xF8:
@@ -661,6 +777,19 @@ class CMusicParserRCP
                     type: "string"
                 }
             );
+
+            for(let n: number = 0; n < 8; n ++)
+            {
+                let strComment: string = Encoding.convert(
+                    this.m_oCParser.extract_string(0x0406 + (48 * n), 24),
+                    {
+                        to: "UNICODE",
+                        type: "string"
+                    }
+                );
+
+                console.log(strComment);
+            }
         }
 
         return(bResult);
@@ -683,20 +812,26 @@ class CMusicParserRCP
             {
                 let nDataSize: number = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16_LE, this.m_nPos + 0);
                 let nTr: number = this.m_oCParser.m_aryData[this.m_nPos + 2];
+                let nRy: number = this.m_oCParser.m_aryData[this.m_nPos + 3];
                 let nCh: number = this.m_oCParser.m_aryData[this.m_nPos + 4];
+                let nKe: number = this.m_oCParser.m_aryData[this.m_nPos + 5];
                 let nStep: number = this.m_oCParser.m_aryData[this.m_nPos + 6];
+                let nMode: number = this.m_oCParser.m_aryData[this.m_nPos + 7];
                 let nNextPos: number = this.m_nPos + nDataSize;
 
                 this.m_nPos += 0x2C;
 
-                if(nCh < 0x10)
+                if(nMode == 0)
                 {
-                    //console.log("-");
-                    //console.log("CH " + nCh + " : TR " + nTrack, " : ST " + nStep);
+                    if(nCh < 0x10)
+                    {
+                        //console.log("-");
+                        //console.log("CH " + nCh + " : TR " + nTrack, " : ST " + nStep);
 
-                    oCMIDIMusic.m_listTrack.push(
-                        this.parse_track(nCh, nDataSize - 0x2C)
-                    );
+                        oCMIDIMusic.m_listTrack.push(
+                            this.parse_track(nCh, nDataSize - 0x2C)
+                        );
+                    }
                 }
 
                 this.m_nPos = nNextPos;

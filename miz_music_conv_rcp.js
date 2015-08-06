@@ -41,6 +41,8 @@ var CRCPStep = (function () {
     }
     return CRCPStep;
 })();
+/*!
+ */
 var CRCPLoop = (function () {
     function CRCPLoop() {
         this.m_nPos = 0;
@@ -52,6 +54,7 @@ var CRCPLoop = (function () {
  */
 var CMusicParserRCP = (function () {
     function CMusicParserRCP(o) {
+        this.m_nPos = 0;
         this.m_oCParser = o;
         this.m_nPos = 0;
     }
@@ -172,6 +175,10 @@ var CMusicParserRCP = (function () {
         var listLoopStack = [];
         var n = oCTWork.m_nPos;
         var bMeasureEnd = false;
+        var oCRCPExc = null;
+        var nEXCGate = 0;
+        var nEXCVelo = 0;
+        var nEXCCSum = 0;
         while (n < oCTWork.m_nTrackSize) {
             var nAddr = n + oCTWork.m_nTrackAddr;
             var nStep = 0;
@@ -182,6 +189,35 @@ var CMusicParserRCP = (function () {
             }
             else {
                 switch (nEv) {
+                    case 0x90:
+                    case 0x91:
+                    case 0x92:
+                    case 0x93:
+                    case 0x94:
+                    case 0x95:
+                    case 0x96:
+                    case 0x97:
+                        nStep = this.m_oCParser.m_aryData[nAddr + 1];
+                        break;
+                    case 0x98:
+                        {
+                            console.assert(oCRCPExc == null);
+                            console.log(""
+                                + " " + this.m_oCParser.m_aryData[nAddr + 0].toString()
+                                + " " + this.m_oCParser.m_aryData[nAddr + 1].toString()
+                                + " " + this.m_oCParser.m_aryData[nAddr + 2].toString()
+                                + " " + this.m_oCParser.m_aryData[nAddr + 3].toString());
+                            oCRCPExc = new CRCPStep();
+                            oCRCPExc.m_nStep = oCTWork.m_nStepTotal;
+                            oCRCPExc.m_nSequence = oCTWork.m_nSequence;
+                            oCRCPExc.m_oCMIDIData = new miz.music.CMIDIData();
+                            oCRCPExc.m_oCMIDIData.m_eMMsg = miz.music.E_MIDI_MSG.SYS_EX_F0;
+                            oCRCPExc.m_oCMIDIData.m_eMEvt = 0;
+                            nEXCGate = this.m_oCParser.m_aryData[nAddr + 2];
+                            nEXCVelo = this.m_oCParser.m_aryData[nAddr + 3];
+                            nStep = this.m_oCParser.m_aryData[nAddr + 1];
+                        }
+                        break;
                     case 0xE2:
                         {
                             var oCMIDIData = null;
@@ -266,8 +302,60 @@ var CMusicParserRCP = (function () {
                         break;
                     case 0xF5:
                     case 0xF6:
-                    case 0xF7:
                         nStep = 0;
+                        break;
+                    case 0xF7:
+                        {
+                            for (var n_1 = 2; n_1 < 4; n_1++) {
+                                var nEXCValue = this.m_oCParser.m_aryData[nAddr + n_1];
+                                switch (nEXCValue) {
+                                    case 0x80:
+                                        oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCGate);
+                                        nEXCCSum += nEXCGate;
+                                        nEXCCSum &= 0x007F;
+                                        break;
+                                    case 0x81:
+                                        oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCVelo);
+                                        nEXCCSum += nEXCVelo;
+                                        nEXCCSum &= 0x007F;
+                                        break;
+                                    case 0x82:
+                                        oCRCPExc.m_oCMIDIData.m_aryValue.push(oCTWork.m_nCh);
+                                        nEXCCSum += oCTWork.m_nCh;
+                                        nEXCCSum &= 0x007F;
+                                        break;
+                                    case 0x83:
+                                        nEXCCSum = 0x00;
+                                        break;
+                                    case 0x84:
+                                        {
+                                            nEXCCSum = 0x80 - nEXCCSum;
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCCSum);
+                                        }
+                                        break;
+                                    case 0xF7:
+                                        {
+                                            var nSize = oCRCPExc.m_oCMIDIData.m_aryValue.length;
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(0xF0);
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nSize);
+                                            listCRCPStep.push(oCRCPExc);
+                                            oCRCPExc = null;
+                                        }
+                                        break;
+                                    default:
+                                        {
+                                            oCRCPExc.m_oCMIDIData.m_aryValue.push(nEXCValue);
+                                            nEXCCSum += nEXCValue;
+                                            nEXCCSum &= 0x007F;
+                                        }
+                                        break;
+                                }
+                                if (nEXCValue == 0xF7) {
+                                    break;
+                                }
+                            }
+                            nStep = 0;
+                        }
                         break;
                     case 0xF8:
                         {
@@ -385,6 +473,13 @@ var CMusicParserRCP = (function () {
                 to: "UNICODE",
                 type: "string"
             });
+            for (var n = 0; n < 8; n++) {
+                var strComment = Encoding.convert(this.m_oCParser.extract_string(0x0406 + (48 * n), 24), {
+                    to: "UNICODE",
+                    type: "string"
+                });
+                console.log(strComment);
+            }
         }
         return (bResult);
     };
@@ -397,12 +492,17 @@ var CMusicParserRCP = (function () {
             for (var nTrack = 0; nTrack < this.m_nTrk; nTrack++) {
                 var nDataSize = this.m_oCParser.extract_number(E_EXTRACT_TYPE.E_EXTRACT_TYPE_U16_LE, this.m_nPos + 0);
                 var nTr = this.m_oCParser.m_aryData[this.m_nPos + 2];
+                var nRy = this.m_oCParser.m_aryData[this.m_nPos + 3];
                 var nCh = this.m_oCParser.m_aryData[this.m_nPos + 4];
+                var nKe = this.m_oCParser.m_aryData[this.m_nPos + 5];
                 var nStep = this.m_oCParser.m_aryData[this.m_nPos + 6];
+                var nMode = this.m_oCParser.m_aryData[this.m_nPos + 7];
                 var nNextPos = this.m_nPos + nDataSize;
                 this.m_nPos += 0x2C;
-                if (nCh < 0x10) {
-                    oCMIDIMusic.m_listTrack.push(this.parse_track(nCh, nDataSize - 0x2C));
+                if (nMode == 0) {
+                    if (nCh < 0x10) {
+                        oCMIDIMusic.m_listTrack.push(this.parse_track(nCh, nDataSize - 0x2C));
+                    }
                 }
                 this.m_nPos = nNextPos;
                 if (this.m_nPos < this.m_oCParser.m_aryData.length) {
