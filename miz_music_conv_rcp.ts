@@ -349,6 +349,13 @@ class CMusicParserRCP
                         }
                         break;
 
+                    case 0x99:
+                        {
+                            bComment = true;
+                            nStep = 0;
+                        }
+                        break;
+
                     case 0xE2:
                         {
                             let oCMIDIData = null;

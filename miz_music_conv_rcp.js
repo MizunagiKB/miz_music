@@ -223,6 +223,12 @@ var CMusicParserRCP = (function () {
                             nStep = this.m_oCParser.m_aryData[nAddr + 1];
                         }
                         break;
+                    case 0x99:
+                        {
+                            bComment = true;
+                            nStep = 0;
+                        }
+                        break;
                     case 0xE2:
                         {
                             var oCMIDIData = null;
