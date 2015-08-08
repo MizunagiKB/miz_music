@@ -73,12 +73,26 @@
             </div>
         </nav>
 
-        <div class="container">
-
-            <div class="alert alert-info alert-dismissible" role="alert">
-                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <p><span class="glyphicon glyphicon-info-sign"></span>&nbsp;MIDI送信先のMIDI Deviceを選択して下さい。</p>
+        <!-- SysEx無しで初期化しなおすかの問い合わせ -->
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+            <div class="modal-dialog" role="document">
+            <div class="modal-content">
+            <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="myModalLabel">この環境ではSysExを使用できません</h4>
             </div>
+            <div class="modal-body">
+                <p>SysExを無効化しますか？</p>
+            </div>
+            <div class="modal-footer">
+            <button id="id_btn_webmidi_init" type="button" class="btn btn-primary" data-dismiss="modal">SysExを無効化して初期化</button>
+            <button type="button" class="btn btn-default" data-dismiss="modal">キャンセル</button>
+            </div>
+            </div>
+            </div>
+        </div>
+
+        <div class="container">
 
             <span id="id_alert">
             </span>
@@ -99,18 +113,18 @@
             <div>
                 <div class="tab-content">
                     <div id="mon" role="tabpanel" class="tab-pane fade in active">
-                        <p>
+                        <p class="font-mono">
                             <div class="row">
-                                <div class="col-md-2 text-right">TEMPO</div>
-                                <div id="id_tempo" class="col-md-2 text-right font-mono"></div>
+                                <div class="col-md-2 text-right"><span class="label label-default">TEMPO</span></div>
+                                <div id="id_tempo" class="col-md-1 text-right"></div>
                             </div>
                             <div class="row">
-                                <div class="col-md-2 text-right">STEP</div>
-                                <div id="id_step" class="col-md-2 text-right font-mono"></div>
+                                <div class="col-md-2 text-right"><span class="label label-default">STEP</span></div>
+                                <div id="id_step" class="col-md-1 text-right"></div>
                             </div>
                             <div class="row">
-                                <div class="col-md-2 text-right">STATUS</div>
-                                <div id="id_status" class="col-md-2 text-right font-mono"></div>
+                                <div class="col-md-2 text-right"><span class="label label-default">STATUS</span></div>
+                                <div id="id_status" class="col-md-1 text-right"></div>
                             </div>
                             <canvas id="id_main_screen"></canvas>
                         </p>
@@ -179,7 +193,6 @@
             {
                 var TPL_MIDI_DEVICE_O = Hogan.compile(
                     ''
-                    + '<li><a href="#">None</a></li>'
                     + '<li role="separator" class="divider"></li>'
                     + '{{#listMIDIDevice}}'
                     + '<li><a href="javascript:evt_assign_midio({{idx}});" href="#">{{name}}</a></li>'
@@ -200,6 +213,8 @@
                         {"listMIDIDevice": listMIDIDevice}
                     )
                 );
+
+                $("#id_assigned_midi_o").text("初期化完了");
             }
 
             // ===============================================================
@@ -209,7 +224,7 @@
             {
                 var TPL_ALERT = Hogan.compile(
                     ''
-                    + '<div class="alert alert-danger alert-dismissible" role="alert">'
+                    + '<div class="alert alert-warning alert-dismissible" role="alert">'
                     + '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>'
                     + '<p><span class="glyphicon glyphicon-exclamation-sign"></span>&nbsp;{{message}}</p>'
                     + '</div>'
@@ -218,6 +233,10 @@
                 $("#id_alert").html(
                     TPL_ALERT.render({"message": oCEvt})
                 )
+
+                $("#myModal").modal();
+
+                $("#id_assigned_midi_o").text("初期化失敗");
             }
 
             // ===============================================================
@@ -452,12 +471,23 @@
 
                 if(oCPlayer.is_play() == true)
                 {
-                    $("#id_status").html("PLAY");
+                    $("#id_status").html('<span class="label label-primary"><span class="glyphicon glyphicon-play">&nbsp;PLAY</span></span>');
                 } else {
-                    $("#id_status").html("STOP");
+                    $("#id_status").html('<span class="label label-danger"><span class="glyphicon glyphicon-stop">&nbsp;STOP</span></span>');
                 }
 
                 oCViewer.update(miz.music_player.CPlayer.INSTANCE);
+            }
+
+            function webmidi_init(bSysEx)
+            {
+                miz.music_player.term();
+
+                miz.music_player.init(
+                    bSysEx,
+                    evt_success,
+                    evt_failure
+                );
             }
 
             function init_stats()
@@ -491,11 +521,7 @@
              */
             window.onload = function()
             {
-                miz.music_player.create_instance(
-                    true,
-                    evt_success,
-                    evt_failure
-                );
+                webmidi_init(true);
 
                 miz.music_viewer.create_instance("id_main_screen")
 
@@ -503,6 +529,14 @@
                 $("#id_filedrop").on("drop", evt_drop);
 
                 $("#id_fileopen").on("change", evt_fileloader);
+
+                $("#id_btn_webmidi_init").on(
+                    "click",
+                    function(oCEvt)
+                    {
+                        webmidi_init(false)
+                    }
+                );
 
                 //GLOBAL.H_TIMER = setInterval(evt_update, GLOBAL.INTERVAL);
 

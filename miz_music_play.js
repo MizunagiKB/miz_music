@@ -215,16 +215,15 @@ var miz;
                 for (var nCh = 0; nCh < CPlayer.MAX_CH; nCh++) {
                     var oCh = this.m_listChStatus[nCh];
                     for (var nNote = 0; nNote < 0x80; nNote++) {
-                        var nCount = oCh.m_listNote[nNote];
-                        while (nCount > 0) {
+                        if (oCh.m_listNote[nNote] > 0) {
                             if (this.m_hMIDIO != null) {
                                 this.m_hMIDIO.send([0x80 + nCh, nNote, 0], 0);
                             }
-                            nCount--;
                         }
                         oCh.m_listNote[nNote] = 0;
                         oCh.m_listCCange[nNote] = 0;
                     }
+                    oCh.m_nPChange = 0;
                 }
             };
             CPlayer.INSTANCE = null;
@@ -264,7 +263,7 @@ var miz;
         /*!
          * @brief プレイヤーインスタンスの生成処理
          */
-        function create_instance(bSysEx, evt_success, evt_failure) {
+        function init(bSysEx, evt_success, evt_failure) {
             if (bSysEx === void 0) { bSysEx = false; }
             if (evt_success === void 0) { evt_success = null; }
             if (evt_failure === void 0) { evt_failure = null; }
@@ -285,17 +284,17 @@ var miz;
             }
             return (oCResult);
         }
-        music_player.create_instance = create_instance;
+        music_player.init = init;
         /*!
          * @brief プレイヤーインスタンスの破棄処理
          */
-        function destroy_instance() {
+        function term() {
             if (CPlayer.INSTANCE != null) {
                 CPlayer.INSTANCE.evt_success = null;
                 CPlayer.INSTANCE.evt_failure = null;
                 CPlayer.INSTANCE = null;
             }
         }
-        music_player.destroy_instance = destroy_instance;
+        music_player.term = term;
     })(music_player = miz.music_player || (miz.music_player = {}));
 })(miz || (miz = {}));
