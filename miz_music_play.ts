@@ -275,7 +275,7 @@ export class CPlayer
 
         this.m_ePlayerStatus = E_PLAYER_STATUS.E_STOP;
 
-        for(let nCh = 0; nCh < CPlayer.MAX_CH; nCh ++)
+        for (let nCh = 0; nCh < CPlayer.MAX_CH; nCh ++)
         {
             let oCh = this.m_listChStatus[nCh];
             let nTime: number = nPerformance + nCh * 20;
@@ -317,9 +317,10 @@ export class CPlayer
 
         this.m_nStepCurr = 0;
 
+        // SMF準拠のタイマー計算
         this.m_nTempo = 60000000 / 120;
 
-        for(let nTr = 0; nTr < this.m_oCMIDIMusic.m_listTrack.length; nTr ++)
+        for (let nTr = 0; nTr < this.m_oCMIDIMusic.m_listTrack.length; nTr ++)
         {
             this.m_listTrStatus[nTr].m_nStepCurr = 0;
             this.m_listTrStatus[nTr].m_nDataPos = 0;
@@ -329,9 +330,6 @@ export class CPlayer
         this.m_ePlayerStatus = E_PLAYER_STATUS.E_PLAY;
 
         this.timer_ignite();
-
-
-        //https://developer.mozilla.org/ja/docs/Web/API/Window/requestAnimationFrame
     }
 
     //
@@ -341,26 +339,25 @@ export class CPlayer
 
         this.timer_destroy();
 
-        for(let nCh = 0; nCh < CPlayer.MAX_CH; nCh ++)
+        for (let nCh = 0; nCh < CPlayer.MAX_CH; nCh ++)
         {
             let oCh = this.m_listChStatus[nCh];
 
-            for(let nNote = 0; nNote < 0x80; nNote ++)
+            for (let nNote = 0; nNote < 0x80; nNote ++)
             {
-                let nCount = oCh.m_listNote[nNote];
-
-                while(nCount > 0)
+                if (oCh.m_listNote[nNote] > 0)
                 {
-                    if(this.m_hMIDIO != null)
+                    if (this.m_hMIDIO != null)
                     {
                         this.m_hMIDIO.send([0x80 + nCh, nNote, 0], 0);
                     }
-                    nCount --;
                 }
 
                 oCh.m_listNote[nNote] = 0;
                 oCh.m_listCCange[nNote] = 0;
             }
+
+            oCh.m_nPChange = 0;
         }
     }
 }
@@ -423,7 +420,7 @@ function evt_midi_failure(oCEvt): void
 /*!
  * @brief プレイヤーインスタンスの生成処理
  */
-export function create_instance(bSysEx: boolean = false, evt_success=null, evt_failure=null): CPlayer
+export function init(bSysEx: boolean = false, evt_success=null, evt_failure=null): CPlayer
 {
     let oCResult: CPlayer = null;
 
@@ -458,7 +455,7 @@ export function create_instance(bSysEx: boolean = false, evt_success=null, evt_f
 /*!
  * @brief プレイヤーインスタンスの破棄処理
  */
-export function destroy_instance(): void
+export function term(): void
 {
     if(CPlayer.INSTANCE != null)
     {

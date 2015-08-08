@@ -17,6 +17,7 @@ var miz;
                 this.m_oCStage = null;
                 this.m_listKb0 = [];
                 this.m_KBSheet = null;
+                this.m_listPChange = [];
                 this.m_listShape = [];
                 this.m_listSprite = [];
                 this.m_oCStage = new createjs.Stage(strId);
@@ -85,6 +86,23 @@ var miz;
                     this.m_oCStage.addChild(this.m_listShape[n]);
                 }
             };
+            CViewer.prototype.update_pc = function (oCPlayer) {
+                for (var n = 0; n < this.m_listPChange.length; n++) {
+                    this.m_oCStage.removeChild(this.m_listPChange[n]);
+                }
+                this.m_listPChange = [];
+                for (var nCh = 0; nCh < 16; nCh++) {
+                    var nPChange = oCPlayer.m_listChStatus[nCh].m_nPChange;
+                    var o = new createjs.Text("" + nPChange, "12px Monospace", "#FFFFFF");
+                    o.textAlign = "right";
+                    o.x = 570;
+                    o.y = 10 + 24 * nCh;
+                    this.m_listPChange.push(o);
+                }
+                for (var n = 0; n < this.m_listPChange.length; n++) {
+                    this.m_oCStage.addChild(this.m_listPChange[n]);
+                }
+            };
             CViewer.prototype.update_note = function (oCPlayer) {
                 for (var n = 0; n < this.m_listSprite.length; n++) {
                     this.m_oCStage.removeChild(this.m_listSprite[n]);
@@ -108,6 +126,7 @@ var miz;
             };
             CViewer.prototype.update = function (oCPlayer) {
                 this.update_cc(oCPlayer);
+                this.update_pc(oCPlayer);
                 this.update_note(oCPlayer);
                 this.m_oCStage.update();
             };

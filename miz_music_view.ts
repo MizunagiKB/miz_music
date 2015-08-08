@@ -30,6 +30,7 @@ export class CViewer
     m_listKb0: Array<createjs.Bitmap> = [];
     m_KBSheet: createjs.SpriteSheet = null;
 
+    m_listPChange: Array<createjs.Text> = [];
     m_listShape: Array<createjs.Shape> = [];
     m_listSprite: Array<createjs.Sprite> = [];
 
@@ -41,7 +42,7 @@ export class CViewer
 
         let oCKb0Base = new createjs.Bitmap("./assets/kbview_0.png");
 
-        for(let n = 0; n < 16; n ++)
+        for (let n = 0; n < 16; n ++)
         {
             let oCKB0 = oCKb0Base.clone();
 
@@ -128,6 +129,32 @@ export class CViewer
         }
     }
 
+    private update_pc(oCPlayer: miz.music_player.CPlayer): void
+    {
+        for (let n = 0; n < this.m_listPChange.length; n ++)
+        {
+            this.m_oCStage.removeChild(this.m_listPChange[n]);
+        }
+        this.m_listPChange = [];
+
+        for (let nCh = 0; nCh < 16; nCh ++)
+        {
+            let nPChange: number = oCPlayer.m_listChStatus[nCh].m_nPChange;
+            let o = new createjs.Text("" + nPChange, "12px Monospace", "#FFFFFF");
+
+            o.textAlign = "right";
+            o.x = 570;
+            o.y = 10 + 24 * nCh;
+
+            this.m_listPChange.push(o);
+        }
+
+        for(let n = 0; n < this.m_listPChange.length; n ++)
+        {
+            this.m_oCStage.addChild(this.m_listPChange[n]);
+        }
+    }
+
     private update_note(oCPlayer: miz.music_player.CPlayer): void
     {
         for (let n = 0; n < this.m_listSprite.length; n ++)
@@ -165,6 +192,7 @@ export class CViewer
     public update(oCPlayer: miz.music_player.CPlayer): void
     {
         this.update_cc(oCPlayer);
+        this.update_pc(oCPlayer);
         this.update_note(oCPlayer);
         this.m_oCStage.update();
     }
