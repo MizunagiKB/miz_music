@@ -1,6 +1,6 @@
 // ===========================================================================
 /*!
- * @brief Mizunagi Music Player for WebMIDI
+ * @brief Web MIDI Player / Play module.
  * @author @MizunagiKB
  */
 // -------------------------------------------------------------- reference(s)
@@ -26,9 +26,9 @@ enum E_PLAYER_STATUS
  */
 class CTrStatus
 {
-    public m_nStepCurr: number;
-    public m_nDataPos: number;
-    public m_bEnable: boolean;
+    public m_nStepCurr: number = 0;
+    public m_nDataPos: number = 0;
+    public m_bEnable: boolean = false;
 }
 
 
@@ -37,7 +37,19 @@ class CTrStatus
  */
 class CChStatus
 {
-    public m_listNote: Array<number> = null;
+    public m_listNote: Array<number> = [];
+    public m_listCCange: Array<number> = [];
+    public m_nPChange: number = 0;
+    public m_nPitch: number = 0;
+
+    constructor()
+    {
+        for (let n = 0; n < 0x80; n++)
+        {
+            this.m_listNote.push(0);
+            this.m_listCCange.push(0);
+        }
+    }
 }
 
 
@@ -57,7 +69,6 @@ export class CPlayer
     private m_oCMIDIMusic: miz.music.CMIDIMusic = null;
 
     private m_ePlayerStatus: E_PLAYER_STATUS = E_PLAYER_STATUS.E_STOP;
-    private m_nTimePrev: number = 0;
     private m_nTimeCurr: number = 0;
 
     private m_hTimer: number = null;
@@ -81,20 +92,40 @@ export class CPlayer
         for(let n = 0; n < CPlayer.MAX_CH; n ++)
         {
             let oCh = new CChStatus();
-
-            oCh.m_listNote = [];
-
-            for(let nNote = 0; nNote < 128; nNote ++)
-            {
-                oCh.m_listNote.push(0);
-            }
-
             this.m_listChStatus.push(oCh);
         }
     }
 
-    // 楽曲再生時に呼び出されるイベントハンドラ
+    private update_track_cc(mData: miz.music.CMIDIData): void
+    {
+        let nCh = mData.m_aryValue[0] & 0x0F;
+        let nEntry: number = mData.m_aryValue[1];
+        let nValue: number = mData.m_aryValue[2];
 
+        this.m_listChStatus[nCh].m_listCCange[nEntry] = nValue;
+    }
+
+    private update_track_pc(mData: miz.music.CMIDIData): void
+    {
+        let nCh = mData.m_aryValue[0] & 0x0F;
+        let nValue: number = mData.m_aryValue[1];
+
+        this.m_listChStatus[nCh].m_nPChange = nValue;
+    }
+
+    private update_track_note(mData: miz.music.CMIDIData): void
+    {
+        let nCh = mData.m_aryValue[0] & 0x0F;
+        let nNote: number = mData.m_aryValue[1];
+        let nVelo: number = mData.m_aryValue[2];
+
+        if (mData.m_eMMsg == miz.music.E_MIDI_MSG.NOTE_OF)
+            nVelo = 0;
+
+        this.m_listChStatus[nCh].m_listNote[nNote] = nVelo;
+    }
+
+    // 楽曲再生時に呼び出されるイベントハンドラ
     private update_track(oCTrStatus: CTrStatus, oCMIDITrack: miz.music.CMIDITrack): boolean
     {
         let bResult: boolean = false;
@@ -102,53 +133,36 @@ export class CPlayer
 
         while(nPos < oCMIDITrack.m_listData.length)
         {
-            let midiData: miz.music.CMIDIData = oCMIDITrack.m_listData[nPos];
+            let mData: miz.music.CMIDIData = oCMIDITrack.m_listData[nPos];
 
             bResult = true;
 
-            if((oCTrStatus.m_nStepCurr + midiData.m_nStep) < this.m_nStepCurr)
+            if((oCTrStatus.m_nStepCurr + mData.m_nStep) < this.m_nStepCurr)
             {
-                oCTrStatus.m_nStepCurr += midiData.m_nStep;
+                oCTrStatus.m_nStepCurr += mData.m_nStep;
 
-                switch(midiData.m_eMMsg)
+                switch(mData.m_eMMsg)
                 {
                     case miz.music.E_MIDI_MSG.NOTE_OF:
-                        {
-                            let nCh = midiData.m_aryValue[0] & 0x0F;
-                            let nNote: number = midiData.m_aryValue[1];
-
-                            if(this.m_listChStatus[nCh].m_listNote[nNote] > 0)
-                            {
-                                this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
-                            }
-                        }
+                    case miz.music.E_MIDI_MSG.NOTE_ON:
+                        this.update_track_note(mData);
                         break;
 
-                    case miz.music.E_MIDI_MSG.NOTE_ON:
-                        {
-                            let nCh = midiData.m_aryValue[0] & 0x0F;
-                            let nNote: number = midiData.m_aryValue[1];
-                            let nVelo = midiData.m_aryValue[2];
+                    case miz.music.E_MIDI_MSG.CONTROL_CHANGE:
+                        this.update_track_cc(mData);
+                        break;
 
-                            if(nVelo > 0)
-                            {
-                                this.m_listChStatus[nCh].m_listNote[nNote] += 1;
-                            } else {
-                                if(this.m_listChStatus[nCh].m_listNote[nNote] > 0)
-                                {
-                                    this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
-                                }
-                            }
-                        }
+                    case miz.music.E_MIDI_MSG.PROGRAM_CHANGE:
+                        this.update_track_pc(mData);
                         break;
 
                     case miz.music.E_MIDI_MSG.META_EVT:
                         {
-                            switch(midiData.m_eMEvt)
+                            switch(mData.m_eMEvt)
                             {
                                 case miz.music.E_META_EVT.TEMPO:
                                     {
-                                        this.m_nTempo = midiData.m_numValue;
+                                        this.m_nTempo = mData.m_numValue;
                                     }
                                     break;
                             }
@@ -156,11 +170,11 @@ export class CPlayer
                         break;
                 }
 
-                if(midiData.m_aryValue.length > 0)
+                if(mData.m_aryValue.length > 0)
                 {
                     try
                     {
-                        this.m_hMIDIO.send(midiData.m_aryValue, 0);
+                        this.m_hMIDIO.send(mData.m_aryValue, 0);
                     } catch(e) {
                     }
                 }
@@ -178,46 +192,39 @@ export class CPlayer
         return(bResult);
     }
 
-    update(): void
+    public update(nTime: number): void
     {
-        if(this.m_ePlayerStatus == E_PLAYER_STATUS.E_PLAY)
+        // 演奏停止状態の場合は以降の処理は行わない。
+        if(this.m_ePlayerStatus != E_PLAYER_STATUS.E_PLAY)
         {
-            let nTime: number = window.performance.now();
-            let nSingleStep: number = (this.m_nTempo / 1000.0) / this.m_oCMIDIMusic.m_nTimeDiv;
-            let nElapsedTime: number = 0;
-            let nElapsedStep: number = 0;
-            let bEnable: boolean = false;
+            return;
+        }
 
-            this.m_nTimeCurr = nTime;
+        let nSingleStep: number = (this.m_nTempo / 1000.0) / this.m_oCMIDIMusic.m_nTimeDiv;
+        let nElapsedTime: number = nTime - this.m_nTimeCurr;
+        let nElapsedStep: number = nElapsedTime / nSingleStep;
 
-            nElapsedTime = this.m_nTimeCurr - this.m_nTimePrev;
-            nElapsedStep = nElapsedTime / nSingleStep;
+        this.m_nTimeCurr = nTime;
 
-            this.m_nStepCurr += nElapsedStep;
-            this.m_nTimePrev = this.m_nTimeCurr;
+        this.m_nStepCurr += nElapsedStep;
 
-            // console.log("this.m_nTimeCurr   " + this.m_nTimeCurr);
-            // console.log("this.m_nStepCurr   " + this.m_nStepCurr);
+        for(let n = 0; n < this.m_oCMIDIMusic.m_listTrack.length; n ++)
+        {
+            let oCTr = this.m_listTrStatus[n];
 
-            for(let nTr = 0; nTr < this.m_oCMIDIMusic.m_listTrack.length; nTr ++)
+            if(oCTr.m_bEnable == true)
             {
-                let oCTr = this.m_listTrStatus[nTr];
-
-                if(oCTr.m_bEnable == true)
-                {
-                    oCTr.m_bEnable = this.update_track(
-                        this.m_listTrStatus[nTr],
-                        this.m_oCMIDIMusic.m_listTrack[nTr]
-                    );
-
-                    bEnable = true;
-                }
+                oCTr.m_bEnable = this.update_track(
+                    this.m_listTrStatus[n],
+                    this.m_oCMIDIMusic.m_listTrack[n]
+                );
             }
+        }
 
-            if(bEnable == false)
-            {
-                this.stop();
-            }
+        // 演奏中のトラックが存在していない場合は演奏終了状態に遷移。
+        if(this.is_play() == false)
+        {
+            this.stop();
         }
     }
 
@@ -247,7 +254,18 @@ export class CPlayer
 
     public is_play(): boolean
     {
-        return(this.m_ePlayerStatus == E_PLAYER_STATUS.E_PLAY);
+        if(this.m_ePlayerStatus == E_PLAYER_STATUS.E_PLAY)
+        {
+            for(let n = 0; n < this.m_oCMIDIMusic.m_listTrack.length; n ++)
+            {
+                if(this.m_listTrStatus[n].m_bEnable == true)
+                {
+                    return(true);
+                }
+            }
+        }
+
+        return(false);
     }
 
     // パラメータ初期化
@@ -296,7 +314,6 @@ export class CPlayer
         this.reset();
 
         this.m_nTimeCurr = window.performance.now();
-        this.m_nTimePrev = this.m_nTimeCurr;
 
         this.m_nStepCurr = 0;
 
@@ -342,6 +359,7 @@ export class CPlayer
                 }
 
                 oCh.m_listNote[nNote] = 0;
+                oCh.m_listCCange[nNote] = 0;
             }
         }
     }
@@ -354,7 +372,9 @@ export class CPlayer
  */
 function evt_update()
 {
-    CPlayer.INSTANCE.update();
+    CPlayer.INSTANCE.update(
+        window.performance.now()
+    );
 }
 
 
