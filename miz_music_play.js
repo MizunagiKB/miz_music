@@ -1,6 +1,6 @@
 // ===========================================================================
 /*!
- * @brief Mizunagi Music Player for WebMIDI
+ * @brief Web MIDI Player / Play module.
  * @author @MizunagiKB
  */
 // -------------------------------------------------------------- reference(s)
@@ -18,6 +18,9 @@ var miz;
          */
         var CTrStatus = (function () {
             function CTrStatus() {
+                this.m_nStepCurr = 0;
+                this.m_nDataPos = 0;
+                this.m_bEnable = false;
             }
             return CTrStatus;
         })();
@@ -25,7 +28,14 @@ var miz;
          */
         var CChStatus = (function () {
             function CChStatus() {
-                this.m_listNote = null;
+                this.m_listNote = [];
+                this.m_listCCange = [];
+                this.m_nPChange = 0;
+                this.m_nPitch = 0;
+                for (var n = 0; n < 0x80; n++) {
+                    this.m_listNote.push(0);
+                    this.m_listCCange.push(0);
+                }
             }
             return CChStatus;
         })();
@@ -36,7 +46,6 @@ var miz;
                 this.m_hMIDIO = null;
                 this.m_oCMIDIMusic = null;
                 this.m_ePlayerStatus = E_PLAYER_STATUS.E_STOP;
-                this.m_nTimePrev = 0;
                 this.m_nTimeCurr = 0;
                 this.m_hTimer = null;
                 this.m_nTempo = 60000000 / 120;
@@ -52,61 +61,62 @@ var miz;
                 this.m_listTrStatus = [];
                 for (var n = 0; n < CPlayer.MAX_CH; n++) {
                     var oCh = new CChStatus();
-                    oCh.m_listNote = [];
-                    for (var nNote = 0; nNote < 128; nNote++) {
-                        oCh.m_listNote.push(0);
-                    }
                     this.m_listChStatus.push(oCh);
                 }
             }
+            CPlayer.prototype.update_track_cc = function (mData) {
+                var nCh = mData.m_aryValue[0] & 0x0F;
+                var nEntry = mData.m_aryValue[1];
+                var nValue = mData.m_aryValue[2];
+                this.m_listChStatus[nCh].m_listCCange[nEntry] = nValue;
+            };
+            CPlayer.prototype.update_track_pc = function (mData) {
+                var nCh = mData.m_aryValue[0] & 0x0F;
+                var nValue = mData.m_aryValue[1];
+                this.m_listChStatus[nCh].m_nPChange = nValue;
+            };
+            CPlayer.prototype.update_track_note = function (mData) {
+                var nCh = mData.m_aryValue[0] & 0x0F;
+                var nNote = mData.m_aryValue[1];
+                var nVelo = mData.m_aryValue[2];
+                if (mData.m_eMMsg == miz.music.E_MIDI_MSG.NOTE_OF)
+                    nVelo = 0;
+                this.m_listChStatus[nCh].m_listNote[nNote] = nVelo;
+            };
             CPlayer.prototype.update_track = function (oCTrStatus, oCMIDITrack) {
                 var bResult = false;
                 var nPos = oCTrStatus.m_nDataPos;
                 while (nPos < oCMIDITrack.m_listData.length) {
-                    var midiData = oCMIDITrack.m_listData[nPos];
+                    var mData = oCMIDITrack.m_listData[nPos];
                     bResult = true;
-                    if ((oCTrStatus.m_nStepCurr + midiData.m_nStep) < this.m_nStepCurr) {
-                        oCTrStatus.m_nStepCurr += midiData.m_nStep;
-                        switch (midiData.m_eMMsg) {
+                    if ((oCTrStatus.m_nStepCurr + mData.m_nStep) < this.m_nStepCurr) {
+                        oCTrStatus.m_nStepCurr += mData.m_nStep;
+                        switch (mData.m_eMMsg) {
                             case miz.music.E_MIDI_MSG.NOTE_OF:
-                                {
-                                    var nCh = midiData.m_aryValue[0] & 0x0F;
-                                    var nNote = midiData.m_aryValue[1];
-                                    if (this.m_listChStatus[nCh].m_listNote[nNote] > 0) {
-                                        this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
-                                    }
-                                }
-                                break;
                             case miz.music.E_MIDI_MSG.NOTE_ON:
-                                {
-                                    var nCh = midiData.m_aryValue[0] & 0x0F;
-                                    var nNote = midiData.m_aryValue[1];
-                                    var nVelo = midiData.m_aryValue[2];
-                                    if (nVelo > 0) {
-                                        this.m_listChStatus[nCh].m_listNote[nNote] += 1;
-                                    }
-                                    else {
-                                        if (this.m_listChStatus[nCh].m_listNote[nNote] > 0) {
-                                            this.m_listChStatus[nCh].m_listNote[nNote] -= 1;
-                                        }
-                                    }
-                                }
+                                this.update_track_note(mData);
+                                break;
+                            case miz.music.E_MIDI_MSG.CONTROL_CHANGE:
+                                this.update_track_cc(mData);
+                                break;
+                            case miz.music.E_MIDI_MSG.PROGRAM_CHANGE:
+                                this.update_track_pc(mData);
                                 break;
                             case miz.music.E_MIDI_MSG.META_EVT:
                                 {
-                                    switch (midiData.m_eMEvt) {
+                                    switch (mData.m_eMEvt) {
                                         case miz.music.E_META_EVT.TEMPO:
                                             {
-                                                this.m_nTempo = midiData.m_numValue;
+                                                this.m_nTempo = mData.m_numValue;
                                             }
                                             break;
                                     }
                                 }
                                 break;
                         }
-                        if (midiData.m_aryValue.length > 0) {
+                        if (mData.m_aryValue.length > 0) {
                             try {
-                                this.m_hMIDIO.send(midiData.m_aryValue, 0);
+                                this.m_hMIDIO.send(mData.m_aryValue, 0);
                             }
                             catch (e) {
                             }
@@ -120,28 +130,23 @@ var miz;
                 oCTrStatus.m_nDataPos = nPos;
                 return (bResult);
             };
-            CPlayer.prototype.update = function () {
-                if (this.m_ePlayerStatus == E_PLAYER_STATUS.E_PLAY) {
-                    var nTime = window.performance.now();
-                    var nSingleStep = (this.m_nTempo / 1000.0) / this.m_oCMIDIMusic.m_nTimeDiv;
-                    var nElapsedTime = 0;
-                    var nElapsedStep = 0;
-                    var bEnable = false;
-                    this.m_nTimeCurr = nTime;
-                    nElapsedTime = this.m_nTimeCurr - this.m_nTimePrev;
-                    nElapsedStep = nElapsedTime / nSingleStep;
-                    this.m_nStepCurr += nElapsedStep;
-                    this.m_nTimePrev = this.m_nTimeCurr;
-                    for (var nTr = 0; nTr < this.m_oCMIDIMusic.m_listTrack.length; nTr++) {
-                        var oCTr = this.m_listTrStatus[nTr];
-                        if (oCTr.m_bEnable == true) {
-                            oCTr.m_bEnable = this.update_track(this.m_listTrStatus[nTr], this.m_oCMIDIMusic.m_listTrack[nTr]);
-                            bEnable = true;
-                        }
+            CPlayer.prototype.update = function (nTime) {
+                if (this.m_ePlayerStatus != E_PLAYER_STATUS.E_PLAY) {
+                    return;
+                }
+                var nSingleStep = (this.m_nTempo / 1000.0) / this.m_oCMIDIMusic.m_nTimeDiv;
+                var nElapsedTime = nTime - this.m_nTimeCurr;
+                var nElapsedStep = nElapsedTime / nSingleStep;
+                this.m_nTimeCurr = nTime;
+                this.m_nStepCurr += nElapsedStep;
+                for (var n = 0; n < this.m_oCMIDIMusic.m_listTrack.length; n++) {
+                    var oCTr = this.m_listTrStatus[n];
+                    if (oCTr.m_bEnable == true) {
+                        oCTr.m_bEnable = this.update_track(this.m_listTrStatus[n], this.m_oCMIDIMusic.m_listTrack[n]);
                     }
-                    if (bEnable == false) {
-                        this.stop();
-                    }
+                }
+                if (this.is_play() == false) {
+                    this.stop();
                 }
             };
             CPlayer.prototype.timer_ignite = function () {
@@ -160,7 +165,14 @@ var miz;
                 return (CPlayer.MIDI_O_LIST[nDevice]);
             };
             CPlayer.prototype.is_play = function () {
-                return (this.m_ePlayerStatus == E_PLAYER_STATUS.E_PLAY);
+                if (this.m_ePlayerStatus == E_PLAYER_STATUS.E_PLAY) {
+                    for (var n = 0; n < this.m_oCMIDIMusic.m_listTrack.length; n++) {
+                        if (this.m_listTrStatus[n].m_bEnable == true) {
+                            return (true);
+                        }
+                    }
+                }
+                return (false);
             };
             CPlayer.prototype.reset = function () {
                 var nPerformance = window.performance.now();
@@ -187,7 +199,6 @@ var miz;
             CPlayer.prototype.play = function () {
                 this.reset();
                 this.m_nTimeCurr = window.performance.now();
-                this.m_nTimePrev = this.m_nTimeCurr;
                 this.m_nStepCurr = 0;
                 this.m_nTempo = 60000000 / 120;
                 for (var nTr = 0; nTr < this.m_oCMIDIMusic.m_listTrack.length; nTr++) {
@@ -212,6 +223,7 @@ var miz;
                             nCount--;
                         }
                         oCh.m_listNote[nNote] = 0;
+                        oCh.m_listCCange[nNote] = 0;
                     }
                 }
             };
@@ -226,7 +238,7 @@ var miz;
         /*!
          */
         function evt_update() {
-            CPlayer.INSTANCE.update();
+            CPlayer.INSTANCE.update(window.performance.now());
         }
         /*!
          */

@@ -122,7 +122,7 @@ class CMusicParserRCP
                                 }
                             }
 
-                            console.assert(listNote[nNote] > 0);
+                            // console.assert(listNote[nNote] > 0);
                             listNote[nNote] -= 1;
 
                         } else {
@@ -315,7 +315,7 @@ class CMusicParserRCP
                     case 0x96:
                     case 0x97:
                         {
-                            console.log("EXC " + nEv);
+                            // console.log("EXC " + nEv);
 
                             nStep = this.m_oCParser.m_aryData[nAddr + 1];
                         }
@@ -323,6 +323,7 @@ class CMusicParserRCP
 
                     case 0x98:
                         {
+                            /*
                             console.assert(oCRCPExc == null);
                             console.log(
                                 ""
@@ -331,6 +332,7 @@ class CMusicParserRCP
                                 + " " + this.m_oCParser.m_aryData[nAddr + 2].toString()
                                 + " " + this.m_oCParser.m_aryData[nAddr + 3].toString()
                             );
+                             */
 
                             bComment = false;
 
@@ -521,6 +523,7 @@ class CMusicParserRCP
 
                     case 0xF7:
                         {
+                            /*
                             console.log(
                                 ""
                                 + " " + this.m_oCParser.m_aryData[nAddr + 0].toString(16)
@@ -528,6 +531,7 @@ class CMusicParserRCP
                                 + " " + this.m_oCParser.m_aryData[nAddr + 2].toString(16)
                                 + " " + this.m_oCParser.m_aryData[nAddr + 3].toString(16)
                             );
+                             */
 
                             if(bComment == false)
                             {
@@ -583,7 +587,7 @@ class CMusicParserRCP
 
                                                 nEXCCSum += nEXCValue;
                                                 nEXCCSum &= 0x007F;
-                                                //console.log(nEXCValue.toString(16) + " " + nEXCCSum.toString(16));
+                                                // console.log(nEXCValue.toString(16) + " " + nEXCCSum.toString(16));
                                             }
                                             break;
                                     }
@@ -650,15 +654,17 @@ class CMusicParserRCP
                             nOf |= this.m_oCParser.m_aryData[nAddr + 3] << 8;
                             nOf |= (this.m_oCParser.m_aryData[nAddr + 2] & 0xFC);
 
-                            console.assert(bCopyMeasure != true);
-                            /*console.log(
+                            // console.assert(bCopyMeasure != true);
+                            /*
+                            console.log(
                                 ""
                                 + " " + this.m_oCParser.m_aryData[nAddr + 0].toString()
                                 + " " + this.m_oCParser.m_aryData[nAddr + 1].toString()
                                 + " " + this.m_oCParser.m_aryData[nAddr + 2].toString()
                                 + " " + this.m_oCParser.m_aryData[nAddr + 3].toString()
                                 + " " + nOf.toString()
-                            );*/
+                            );
+                             */
 
                             listCRCPStep = array_append(
                                 listCRCPStep,
@@ -680,13 +686,15 @@ class CMusicParserRCP
 
                     default:
                         {
-                            /*console.log(
+                            /*
+                            console.log(
                                 ""
                                 + " " + this.m_oCParser.m_aryData[nAddr + 0].toString()
                                 + " " + this.m_oCParser.m_aryData[nAddr + 1].toString()
                                 + " " + this.m_oCParser.m_aryData[nAddr + 2].toString()
                                 + " " + this.m_oCParser.m_aryData[nAddr + 3].toString()
-                            );*/
+                            );
+                             */
 
                             nStep = this.m_oCParser.m_aryData[nAddr + 1];
                         }
@@ -737,7 +745,7 @@ class CMusicParserRCP
         oCRCPStep.m_nSequence = 0;
         listCRCPStep.unshift(oCRCPStep);
 
-        //console.log("STEP " + oCTWork.m_nStepTotal + " " + listCRCPStep.length);
+        // console.log("STEP " + oCTWork.m_nStepTotal + " " + listCRCPStep.length);
 
         listCRCPStep.sort(
             function(a: CRCPStep, b: CRCPStep)
@@ -809,7 +817,7 @@ class CMusicParserRCP
                     }
                 );
 
-                console.log(strComment);
+                // console.log(strComment);
             }
         }
 
@@ -827,7 +835,7 @@ class CMusicParserRCP
 
             oCMIDIMusic = new miz.music.CMIDIMusic();
 
-            //console.log("parse Head" + this.m_nTrk);
+            // console.log("parse Head" + this.m_nTrk);
 
             for(let nTrack: number = 0; nTrack < this.m_nTrk; nTrack ++)
             {
@@ -846,8 +854,8 @@ class CMusicParserRCP
                 {
                     if(nCh < 0x10)
                     {
-                        console.log("-");
-                        console.log("CH " + nCh + " : TR " + nTrack, " : ST " + nStep);
+                        // console.log("-");
+                        // console.log("CH " + nCh + " : TR " + nTrack, " : ST " + nStep);
 
                         oCMIDIMusic.m_listTrack.push(
                             this.parse_track(nCh, nStep, nDataSize - 0x2C)

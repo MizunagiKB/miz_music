@@ -8,7 +8,10 @@
         "./**/*.ts"
     ],
     "files": [
-        "./d3/d3.d.ts",
+        "./DefinitelyTyped/createjs-lib/createjs-lib.d.ts",
+        "./DefinitelyTyped/easeljs/easeljs.d.ts",
+        "./DefinitelyTyped/preloadjs/preloadjs.d.ts",
+        "./DefinitelyTyped/tweenjs/tweenjs.d.ts",
         "./miz_music.ts",
         "./miz_music_conv.ts",
         "./miz_music_conv_rcp.ts",

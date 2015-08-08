@@ -81,7 +81,6 @@ var CMusicParserRCP = (function () {
                                     nStepCurr = oCRCPStep.m_nStep;
                                 }
                             }
-                            console.assert(listNote[nNote] > 0);
                             listNote[nNote] -= 1;
                         }
                         else {
@@ -199,18 +198,11 @@ var CMusicParserRCP = (function () {
                     case 0x96:
                     case 0x97:
                         {
-                            console.log("EXC " + nEv);
                             nStep = this.m_oCParser.m_aryData[nAddr + 1];
                         }
                         break;
                     case 0x98:
                         {
-                            console.assert(oCRCPExc == null);
-                            console.log(""
-                                + " " + this.m_oCParser.m_aryData[nAddr + 0].toString()
-                                + " " + this.m_oCParser.m_aryData[nAddr + 1].toString()
-                                + " " + this.m_oCParser.m_aryData[nAddr + 2].toString()
-                                + " " + this.m_oCParser.m_aryData[nAddr + 3].toString());
                             bComment = false;
                             oCRCPExc = new CRCPStep();
                             oCRCPExc.m_nStep = oCTWork.m_nStepTotal;
@@ -320,11 +312,6 @@ var CMusicParserRCP = (function () {
                         break;
                     case 0xF7:
                         {
-                            console.log(""
-                                + " " + this.m_oCParser.m_aryData[nAddr + 0].toString(16)
-                                + " " + this.m_oCParser.m_aryData[nAddr + 1].toString(16)
-                                + " " + this.m_oCParser.m_aryData[nAddr + 2].toString(16)
-                                + " " + this.m_oCParser.m_aryData[nAddr + 3].toString(16));
                             if (bComment == false) {
                                 for (var n_1 = 2; n_1 < 4; n_1++) {
                                     var nEXCValue = this.m_oCParser.m_aryData[nAddr + n_1];
@@ -417,7 +404,6 @@ var CMusicParserRCP = (function () {
                             nMe |= (this.m_oCParser.m_aryData[nAddr + 2] & 0x03) << 8;
                             nOf |= this.m_oCParser.m_aryData[nAddr + 3] << 8;
                             nOf |= (this.m_oCParser.m_aryData[nAddr + 2] & 0xFC);
-                            console.assert(bCopyMeasure != true);
                             listCRCPStep = array_append(listCRCPStep, this.copy_event(oCTWork, nMe, nOf));
                             nStep = 0;
                         }
@@ -500,7 +486,6 @@ var CMusicParserRCP = (function () {
                     to: "UNICODE",
                     type: "string"
                 });
-                console.log(strComment);
             }
         }
         return (bResult);
@@ -523,8 +508,6 @@ var CMusicParserRCP = (function () {
                 this.m_nPos += 0x2C;
                 if (nMode == 0) {
                     if (nCh < 0x10) {
-                        console.log("-");
-                        console.log("CH " + nCh + " : TR " + nTrack, " : ST " + nStep);
                         oCMIDIMusic.m_listTrack.push(this.parse_track(nCh, nStep, nDataSize - 0x2C));
                     }
                 }

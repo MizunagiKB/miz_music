@@ -4,8 +4,8 @@
  * @author @MizunagiKB
  */
 // -------------------------------------------------------------- reference(s)
+/// <reference path="./DefinitelyTyped/easeljs/easeljs.d.ts" />
 /// <reference path="./miz_music_play.ts" />
-/// <reference path="./d3/d3.d.ts" />
 
 
 module miz.music_viewer
@@ -14,6 +14,7 @@ module miz.music_viewer
 // ---------------------------------------------------------------- declare(s)
 // ------------------------------------------------------------------- enum(s)
 // ----------------------------------------------------------------- global(s)
+// ------------------------------------------------------------------ param(s)
 // ------------------------------------------------------------------ class(s)
 // ---------------------------------------------------------------------------
 /*!
@@ -23,204 +24,160 @@ export class CViewer
     static INSTANCE: CViewer = null;
     static INTERVAL: number = 100;
     static HEIGHT: number = 96;
-    static PEAK_HISTORY: number = 128;
+    static PEAK_HISTORY: number = 136;
 
-    m_oCSVG: d3.Selection<any> = null;
-    m_hTimer: number = null;
+    m_oCStage: createjs.Stage = null;
+    m_listKb0: Array<createjs.Bitmap> = [];
+    m_KBSheet: createjs.SpriteSheet = null;
 
-    m_oCGText: d3.Selection<any> = null;
-    m_oCTextStatus: d3.Selection<any> = null;
-    m_oCTextTempo: d3.Selection<any> = null;
-    m_oCTextStep: d3.Selection<any> = null;
-    m_oCTextTimebase: d3.Selection<any> = null;
-
-    m_oCGLine: d3.Selection<any> = null;
-
-    m_oCLineRenderer: any = null;
-    m_oCSVGLine: d3.Selection<any> = null;
-    m_listEventCount = [];
-    m_listChannelPeak = [];
+    m_listShape: Array<createjs.Shape> = [];
+    m_listSprite: Array<createjs.Sprite> = [];
 
     constructor(strId: string)
     {
-        this.m_oCSVG = d3.select(strId);
-        this.m_oCSVG.attr("width", 512);
-        this.m_oCSVG.attr("height", CViewer.HEIGHT);
+        this.m_oCStage = new createjs.Stage(strId);
+        this.m_oCStage.canvas.width = 768;
+        this.m_oCStage.canvas.height = 384;
 
-        this.m_oCGText = this.m_oCSVG.append("g");
-
-        let oCText = null;
-
-        oCText = this.m_oCGText.append("text");
-        oCText.text("TEMPO")
-            .attr("font-size", "18px")
-            .attr("text-anchor", "end")
-            .attr("x", 384)
-            .attr("y", 20)
-            ;
-
-        oCText = this.m_oCGText.append("text");
-        oCText.text("STEP")
-            .attr("font-size", "18px")
-            .attr("text-anchor", "end")
-            .attr("x", 384)
-            .attr("y", 20 + 20)
-            ;
-
-        oCText = this.m_oCGText.append("text");
-        oCText.text("TIMEBASE")
-            .attr("font-size", "18px")
-            .attr("text-anchor", "end")
-            .attr("x", 384)
-            .attr("y", 20 + 40)
-            ;
-
-        this.m_oCTextTempo = this.m_oCGText.append("text");
-        this.m_oCTextTempo.text("0")
-            .attr("font-size", "18px")
-            .attr("text-anchor", "end")
-            .attr("x", 506)
-            .attr("y", 20)
-            ;
-
-        this.m_oCTextStep = this.m_oCGText.append("text");
-        this.m_oCTextStep.text("0")
-            .attr("font-size", "18px")
-            .attr("text-anchor", "end")
-            .attr("x", 506)
-            .attr("y", 40)
-            ;
-
-        this.m_oCTextTimebase = this.m_oCGText.append("text");
-        this.m_oCTextTimebase.text("0")
-            .attr("font-size", "18px")
-            .attr("text-anchor", "end")
-            .attr("x", 506)
-            .attr("y", 60)
-            ;
+        let oCKb0Base = new createjs.Bitmap("./assets/kbview_0.png");
 
         for(let n = 0; n < 16; n ++)
         {
-            this.m_listChannelPeak.push(0);
+            let oCKB0 = oCKb0Base.clone();
+
+            oCKB0.x = 8;
+            oCKB0.y = (24 * n) + 8;
+            oCKB0.alpha = 0.75;
+
+            this.m_listKb0.push(oCKB0);
+
+            this.m_oCStage.addChild(oCKB0);
         }
 
-        for(let n = 0; n < CViewer.PEAK_HISTORY; n ++)
-        {
-            this.m_listEventCount.push(0);
-        }
+        let dictSheet = {
+            images: ["./assets/kbview_1.png"],
+            frames: [
+                [  0,  0,  64, 16],
+                [  0, 16,  64, 16],
+                [  0, 32,  64, 16],
+                [  0, 48,  64, 16],
+                [  0, 64,  64, 16],
+                [  0, 80,  64, 16],
+                [  0, 96,  64, 16],
+                [  0,112,  64, 16],
+                [  0,128,  64, 16],
+                [  0,144,  64, 16],
+                [  0,160,  64, 16],
+                [  0,176,  64, 16]
+            ],
+            animations: {
+                "0": [0],
+                "1": [1],
+                "2": [2],
+                "3": [3],
+                "4": [4],
+                "5": [5],
+                "6": [6],
+                "7": [7],
+                "8": [8],
+                "9": [9],
+                "10": [10],
+                "11": [11]
+            }
+        };
 
-        this.m_oCLineRenderer = d3.svg.line()
-            .x(function(d, n) { return n * 4; })
-            .y(function(d) { return(CViewer.HEIGHT - d); })
-            ;
-
-        this.m_oCSVGLine = this.m_oCSVG.append("path");
-
-        this.m_oCSVGLine
-            .datum(this.m_listEventCount)
-            .attr('stroke', "#000000")
-            .attr('stroke-width', '1')
-            .attr('fill', 'transparent')
-            .attr("d", this.m_oCLineRenderer)
-            ;
+        this.m_KBSheet = new createjs.SpriteSheet(dictSheet);
     }
 
-    public update_peak(): void
+    private update_cc(oCPlayer: miz.music_player.CPlayer): void
     {
-        for(let nCh: number = 0; nCh < 16; nCh ++)
-        {
-            let oCCh = miz.music_player.CPlayer.INSTANCE.m_listChStatus[nCh];
-            let nValue = this.m_listChannelPeak[nCh];
-            let nValueNew = 0;
+        let g = new createjs.Graphics();
 
-            for(let nNote = 0; nNote < 0x80; nNote ++)
+        for (let n = 0; n < this.m_listShape.length; n ++)
+        {
+            this.m_oCStage.removeChild(this.m_listShape[n]);
+        }
+        this.m_listShape = [];
+
+        for (let nCh = 0; nCh < 16; nCh ++)
+        {
+            let listCC: Array<number> = oCPlayer.m_listChStatus[nCh].m_listCCange;
+
+            for (let nCC = 0; nCC < 0x80; nCC++)
             {
-                if(oCCh.m_listNote[nNote] > 0)
+                if(listCC[nCC] > 0)
                 {
-                    nValueNew += (CViewer.HEIGHT / 4);
+                    let o = new createjs.Shape();
+                    let v = listCC[nCC] >> 3;
+
+                    o.graphics.beginFill("#FFFFFF").drawRect(
+                        768 - 128 + nCC,
+                        (8 + (16 - v))+ 24 * nCh,
+                        1,
+                        v
+                    );
+
+                    this.m_listShape.push(o);
                 }
             }
-
-            if(nValueNew > nValue)
-            {
-                nValue = nValueNew;
-            }
-
-            nValue -= 5;
-
-            if(nValue > CViewer.HEIGHT) nValue = CViewer.HEIGHT;
-            if(nValue < 1) nValue = 0;
-
-            this.m_listChannelPeak[nCh] = nValue;
         }
 
-        this.m_oCSVG.selectAll("rect.bar")
-            .data(this.m_listChannelPeak)
-            .attr("y", function(d) { return CViewer.HEIGHT - d; })
-            .attr("height", function(d) { return d; })
-
-            .enter().append("rect")
-            .attr("class", "bar")
-            .attr("x", function(d, n) { return(n * 8); })
-            .attr("width", 6)
-            .attr("y", function(d) { return CViewer.HEIGHT - d; })
-            .attr("height", function(d) { return CViewer.HEIGHT; })
-            ;
+        for(let n = 0; n < this.m_listShape.length; n ++)
+        {
+            this.m_oCStage.addChild(this.m_listShape[n]);
+        }
     }
 
-    public update_line(): void
+    private update_note(oCPlayer: miz.music_player.CPlayer): void
     {
-        let nValue: number = 0;
-
-        for(let n: number = 0; n < 16; n ++)
+        for (let n = 0; n < this.m_listSprite.length; n ++)
         {
-            nValue += this.m_listChannelPeak[n];
+            this.m_oCStage.removeChild(this.m_listSprite[n]);
+        }
+        this.m_listSprite = [];
+
+        for (let n = 0; n < 16; n ++)
+        {
+            let listNote: Array<number> = oCPlayer.m_listChStatus[n].m_listNote;
+
+            for (let nNote = 0; nNote < 0x80; nNote ++)
+            {
+                if(listNote[nNote] > 0)
+                {
+                    let o = new createjs.Sprite(this.m_KBSheet, Math.floor(nNote % 12));
+
+                    o.x = 8 + Math.floor(nNote / 12) * 49;
+                    o.y = 8 + (24 * n);
+                    o.alpha = listNote[nNote] / 127.0;
+
+                    this.m_listSprite.push(o);
+                }
+            }
         }
 
-        nValue /= 16;
-
-        if(nValue > CViewer.HEIGHT)
+        for(let n = 0; n < this.m_listSprite.length; n ++)
         {
-            nValue = CViewer.HEIGHT;
+            this.m_oCStage.addChild(this.m_listSprite[n]);
         }
-
-        this.m_listEventCount.push(nValue);
-        if(this.m_listEventCount.length > CViewer.PEAK_HISTORY)
-        {
-            this.m_listEventCount = this.m_listEventCount.slice(1, CViewer.PEAK_HISTORY);
-        }
-
-        this.m_oCSVGLine
-            .datum(this.m_listEventCount)
-            .attr('stroke', "#000000")
-            .attr('stroke-width', '1')
-            .attr('fill', 'transparent')
-            .attr("d", this.m_oCLineRenderer)
-            ;
     }
 
     // 楽曲再生時に呼び出されるイベントハンドラ
     public update(oCPlayer: miz.music_player.CPlayer): void
     {
-        this.m_oCTextTempo.text(
-            Math.floor(60000000 / oCPlayer.m_nTempo)
-        );
-
-        this.m_oCTextStep.text(
-            Math.floor(oCPlayer.m_nStepCurr)
-        );
-
-        this.m_oCTextTimebase.text(
-            Math.floor(oCPlayer.m_nTimeDiv)
-        );
-
-        this.update_line();
-        this.update_peak();
+        this.update_cc(oCPlayer);
+        this.update_note(oCPlayer);
+        this.m_oCStage.update();
     }
 }
 
 
 // --------------------------------------------------------------- function(s)
+
+ function handleTick(oCEvt)
+ {
+     CViewer.INSTANCE.m_oCStage.update();
+ }
+
 // ===========================================================================
 /*!
  * @brief ディスプレイインスタンスの生成処理

@@ -23,7 +23,8 @@
             <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
         <![endif]-->
 
-        <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Share+Tech+Mono" />
+        <link href='http://fonts.googleapis.com/css?family=Hind' rel='stylesheet' type='text/css' />
+        <link href='http://fonts.googleapis.com/css?family=Inconsolata' rel='stylesheet' type='text/css' />
 
         <style>
             body
@@ -31,9 +32,14 @@
                 padding-top: 70px;
             }
 
-            .custom-font
+            .font-mono
             {
-                font-family: 'Share Tech Mono';
+                font-family: 'Inconsolata', ;
+            }
+
+            .font-disp
+            {
+                font-family: 'Hind', sans-serif;
             }
         </style>
 
@@ -77,31 +83,63 @@
             <span id="id_alert">
             </span>
 
-            <div class="custom-font">
+            <div class="page-header">
+                <h4 id="id_active_music">*</h4>
+            </div>
 
-                <div class="page-header">
-                    <h3 id="id_active_music">*</h3>
+            <div class="font-disp">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li role="presentation" class="active"><a href="#mon" aria-controls="mon" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-equalizer"></span>&nbsp;Monitor</a></li>
+                    <!--
+                    <li role="presentation"><a href="#inf" aria-controls="inf" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-info-sign"></span>&nbsp;Information</a></li>
+                      -->
+                </ul>
+            </div>
+
+            <div>
+                <div class="tab-content">
+                    <div id="mon" role="tabpanel" class="tab-pane fade in active">
+                        <p>
+                            <div class="row">
+                                <div class="col-md-2 text-right">TEMPO</div>
+                                <div id="id_tempo" class="col-md-2 text-right font-mono"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-2 text-right">STEP</div>
+                                <div id="id_step" class="col-md-2 text-right font-mono"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-2 text-right">STATUS</div>
+                                <div id="id_status" class="col-md-2 text-right font-mono"></div>
+                            </div>
+                            <canvas id="id_main_screen"></canvas>
+                        </p>
+                    </div>
+                    <!--
+                    <div id="inf" role="tabpanel" class="tab-pane fade">
+                        <p>
+                            DUMMY
+                        </p>
+                    </div>
+                      -->
                 </div>
 
-                <svg id="id_main_screen" style="background-color: #EFEFEF;"></svg>
-                <div id="status"></div>
-                <div id="tempo"></div>
-                <div id="step"></div>
+            </div>
 
-                <table class="table table-striped">
+            <div>
+                <table class="table table-striped table-hover">
                     <thead>
                         <tr>
-                            <th>#</th>
+                            <th class="text-center">#</th>
                             <th>Filename</th>
-                            <th>Size</th>
-                            <th>Track(s)</th>
-                            <th>#</th>
+                            <th class="text-right">Size</th>
+                            <th class="text-right">Track(s)</th>
+                            <th class="text-center">#</th>
                         </tr>
                     </thead>
                     <tbody id="id_music_list">
                     </tbody>
                 </table>
-
             </div>
 
             <div id="id_filedrop" class="well">
@@ -131,7 +169,6 @@
             var GLOBAL = new Object();
             GLOBAL.H_TIMER = null;
             GLOBAL.INTERVAL = 100;
-            GLOBAL.SVG = null;
             GLOBAL.MUSIC_DATA = [];
 
             // --------------------------------------------------- function(s)
@@ -307,8 +344,8 @@
                     + '</div>'
                     + '</td>'
                     + '<th>{{title}}</br ><small>{{filename}}</small></th>'
-                    + '<td>{{filesize}}</td>'
-                    + '<td>{{track_count}}</td>'
+                    + '<td class="text-right">{{filesize}}</td>'
+                    + '<td class="text-right">{{track_count}}</td>'
                     + '<td>'
                     + '<div class="btn-group" role="group" aria-label="">'
                     + '<button type="button" class="btn btn-danger" onclick="evt_music_detach({{idx}});"><span class="glyphicon glyphicon-remove"></span></button>'
@@ -408,8 +445,45 @@
             function evt_update()
             {
                 var oCViewer = miz.music_viewer.CViewer.INSTANCE;
+                var oCPlayer = miz.music_player.CPlayer.INSTANCE;
+
+                $("#id_tempo").html(Math.floor(60000000 / oCPlayer.m_nTempo));
+                $("#id_step").html(Math.floor(oCPlayer.m_nStepCurr));
+
+                if(oCPlayer.is_play() == true)
+                {
+                    $("#id_status").html("PLAY");
+                } else {
+                    $("#id_status").html("STOP");
+                }
 
                 oCViewer.update(miz.music_player.CPlayer.INSTANCE);
+            }
+
+            function init_stats()
+            {
+                var stats = new Stats();
+                stats.setMode( 1 ); // 0: fps, 1: ms, 2: mb
+
+                // align top-left
+                stats.domElement.style.position = 'absolute';
+                stats.domElement.style.left = '0px';
+                stats.domElement.style.top = '72px';
+
+                document.body.appendChild( stats.domElement );
+
+                var update = function ()
+                {
+                    stats.begin();
+
+                    evt_update();
+
+                    stats.end();
+
+                    requestAnimationFrame(update);
+                };
+
+                requestAnimationFrame(update);
             }
 
             // ===============================================================
@@ -423,14 +497,16 @@
                     evt_failure
                 );
 
-                miz.music_viewer.create_instance("#id_main_screen")
+                miz.music_viewer.create_instance("id_main_screen")
 
                 $("#id_filedrop").on("dragover", evt_dragover);
                 $("#id_filedrop").on("drop", evt_drop);
 
                 $("#id_fileopen").on("change", evt_fileloader);
 
-                GLOBAL.H_TIMER = setInterval(evt_update, GLOBAL.INTERVAL);
+                //GLOBAL.H_TIMER = setInterval(evt_update, GLOBAL.INTERVAL);
+
+                init_stats();
             }
 
         </script>
@@ -444,7 +520,11 @@
         <!-- Hogan.js http://twitter.github.io/hogan.js/ -->
         <script src="https://twitter.github.io/hogan.js/builds/3.0.1/hogan-3.0.1.js"></script>
 
-        <script charset="utf-8" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+        <!-- EASEL JS http://www.createjs.com/ -->
+        <script src="https://code.createjs.com/easeljs-0.8.1.min.js"></script>
+
+        <!-- https://github.com/mrdoob/stats.js -->
+        <script src="./stats.min.js"></script>
 
         <!-- Place this tag right after the last button or just before your close body tag. -->
         <script async defer id="github-bjs" src="https://buttons.github.io/buttons.js"></script>
