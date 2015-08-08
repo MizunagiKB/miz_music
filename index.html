@@ -61,6 +61,7 @@
 
                 <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                     <ul class="nav navbar-nav">
+                        <li><a id="id_show_stats" href="#"><span class="glyphicon glyphicon-scale"></span></a></li>
                         <li class="dropdown">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                                 MIDI Device&nbsp;[&nbsp;<span id="id_assigned_midi_o"></span>&nbsp;]&nbsp;<span class="caret"></span>
@@ -181,8 +182,7 @@
 
             // ---------------------------------------------- Global Object(s)
             var GLOBAL = new Object();
-            GLOBAL.H_TIMER = null;
-            GLOBAL.INTERVAL = 100;
+            GLOBAL.STATS = null;
             GLOBAL.MUSIC_DATA = [];
 
             // --------------------------------------------------- function(s)
@@ -492,23 +492,24 @@
 
             function init_stats()
             {
-                var stats = new Stats();
-                stats.setMode( 1 ); // 0: fps, 1: ms, 2: mb
+                GLOBAL.STATS = new Stats();
+                GLOBAL.STATS.setMode(1); // 0: fps, 1: ms, 2: mb
 
                 // align top-left
-                stats.domElement.style.position = 'absolute';
-                stats.domElement.style.left = '0px';
-                stats.domElement.style.top = '72px';
+                GLOBAL.STATS.domElement.style.position = 'absolute';
+                GLOBAL.STATS.domElement.style.left = '0px';
+                GLOBAL.STATS.domElement.style.top = '72px';
+                GLOBAL.STATS.domElement.style.visibility = "hidden";
 
-                document.body.appendChild( stats.domElement );
+                document.body.appendChild(GLOBAL.STATS.domElement);
 
-                var update = function ()
+                var update = function()
                 {
-                    stats.begin();
+                    GLOBAL.STATS.begin();
 
                     evt_update();
 
-                    stats.end();
+                    GLOBAL.STATS.end();
 
                     requestAnimationFrame(update);
                 };
@@ -529,6 +530,21 @@
                 $("#id_filedrop").on("drop", evt_drop);
 
                 $("#id_fileopen").on("change", evt_fileloader);
+
+                $("#id_show_stats").on(
+                    "click",
+                    function(oCEvt)
+                    {
+                        var strVisibility = "hidden";
+
+                        if(GLOBAL.STATS.domElement.style.visibility == "hidden")
+                        {
+                            strVisibility = "visible";
+                        }
+
+                        GLOBAL.STATS.domElement.style.visibility = strVisibility;
+                    }
+                );
 
                 $("#id_btn_webmidi_init").on(
                     "click",
