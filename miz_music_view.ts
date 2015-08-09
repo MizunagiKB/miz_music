@@ -33,6 +33,7 @@ export class CViewer
     m_listPChange: Array<createjs.Text> = [];
     m_listShape: Array<createjs.Shape> = [];
     m_listSprite: Array<createjs.Sprite> = [];
+    m_listKbTrig: Array<number> = [];
 
     constructor(strId: string)
     {
@@ -51,6 +52,7 @@ export class CViewer
             oCKB0.alpha = 0.75;
 
             this.m_listKb0.push(oCKB0);
+            this.m_listKbTrig.push(0);
 
             this.m_oCStage.addChild(oCKB0);
         }
@@ -113,13 +115,28 @@ export class CViewer
 
                     o.graphics.beginFill("#FFFFFF").drawRect(
                         768 - 128 + nCC,
-                        (8 + (16 - v))+ 24 * nCh,
+                        (8 + (16 - v)) + 24 * nCh,
                         1,
                         v
                     );
 
                     this.m_listShape.push(o);
                 }
+            }
+
+            if(this.m_listKbTrig[nCh] > 0)
+            {
+                let o = new createjs.Shape();
+                let v = this.m_listKbTrig[nCh] >> 3;
+
+                o.graphics.beginFill("#377BB5").drawRect(
+                    2,
+                    (8 + (16 - v))+ 24 * nCh,
+                    4,
+                    v
+                );
+
+                this.m_listShape.push(o);
             }
         }
 
@@ -167,6 +184,11 @@ export class CViewer
         {
             let listNote: Array<number> = oCPlayer.m_listChStatus[n].m_listNote;
 
+            if(this.m_listKbTrig[n] > 0)
+            {
+                this.m_listKbTrig[n] -= 1;
+            }
+
             for (let nNote = 0; nNote < 0x80; nNote ++)
             {
                 if(listNote[nNote] > 0)
@@ -178,6 +200,8 @@ export class CViewer
                     o.alpha = listNote[nNote] / 127.0;
 
                     this.m_listSprite.push(o);
+
+                    this.m_listKbTrig[n] = 127;
                 }
             }
         }
