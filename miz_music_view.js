@@ -20,6 +20,7 @@ var miz;
                 this.m_listPChange = [];
                 this.m_listShape = [];
                 this.m_listSprite = [];
+                this.m_listKbTrig = [];
                 this.m_oCStage = new createjs.Stage(strId);
                 this.m_oCStage.canvas.width = 768;
                 this.m_oCStage.canvas.height = 384;
@@ -30,6 +31,7 @@ var miz;
                     oCKB0.y = (24 * n) + 8;
                     oCKB0.alpha = 0.75;
                     this.m_listKb0.push(oCKB0);
+                    this.m_listKbTrig.push(0);
                     this.m_oCStage.addChild(oCKB0);
                 }
                 var dictSheet = {
@@ -81,6 +83,12 @@ var miz;
                             this.m_listShape.push(o);
                         }
                     }
+                    if (this.m_listKbTrig[nCh] > 0) {
+                        var o = new createjs.Shape();
+                        var v = this.m_listKbTrig[nCh] >> 3;
+                        o.graphics.beginFill("#377BB5").drawRect(2, (8 + (16 - v)) + 24 * nCh, 4, v);
+                        this.m_listShape.push(o);
+                    }
                 }
                 for (var n = 0; n < this.m_listShape.length; n++) {
                     this.m_oCStage.addChild(this.m_listShape[n]);
@@ -110,6 +118,9 @@ var miz;
                 this.m_listSprite = [];
                 for (var n = 0; n < 16; n++) {
                     var listNote = oCPlayer.m_listChStatus[n].m_listNote;
+                    if (this.m_listKbTrig[n] > 0) {
+                        this.m_listKbTrig[n] -= 1;
+                    }
                     for (var nNote = 0; nNote < 0x80; nNote++) {
                         if (listNote[nNote] > 0) {
                             var o = new createjs.Sprite(this.m_KBSheet, Math.floor(nNote % 12));
@@ -117,6 +128,7 @@ var miz;
                             o.y = 8 + (24 * n);
                             o.alpha = listNote[nNote] / 127.0;
                             this.m_listSprite.push(o);
+                            this.m_listKbTrig[n] = 127;
                         }
                     }
                 }
