@@ -64,7 +64,7 @@
                         <li><a id="id_show_stats" href="#"><span class="glyphicon glyphicon-scale"></span></a></li>
                         <li class="dropdown">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                                MIDI Device&nbsp;[&nbsp;<span id="id_assigned_midi_o"></span>&nbsp;]&nbsp;<span class="caret"></span>
+                                MIDI Device&nbsp;[&nbsp;<span id="id_assigned_midi_o">未初期化</span>&nbsp;]&nbsp;<span class="caret"></span>
                             </a>
                             <ul id="id_midi_device_o" class="dropdown-menu">
                             </ul>
@@ -114,7 +114,7 @@
             <div>
                 <div class="tab-content">
                     <div id="mon" role="tabpanel" class="tab-pane fade in active">
-                        <p class="font-mono">
+                        <p>
                             <div class="row">
                                 <div class="col-md-2 text-right"><span class="label label-default">TEMPO</span></div>
                                 <div id="id_tempo" class="col-md-1 text-right"></div>
@@ -466,14 +466,24 @@
                 var oCViewer = miz.music_viewer.CViewer.INSTANCE;
                 var oCPlayer = miz.music_player.CPlayer.INSTANCE;
 
-                $("#id_tempo").html(Math.floor(60000000 / oCPlayer.m_nTempo));
-                $("#id_step").html(Math.floor(oCPlayer.m_nStepCurr));
+                $("#id_tempo").html(
+                    ''
+                    + '<span class="font-mono"><strong>'
+                    + Math.floor(60000000 / oCPlayer.m_nTempo)
+                    + '</strong></span>'
+                );
+                $("#id_step").html(
+                    ''
+                    + '<span class="font-mono"><strong>'
+                    + Math.floor(oCPlayer.m_nStepCurr)
+                    + '</strong></span>'
+                );
 
                 if(oCPlayer.is_play() == true)
                 {
-                    $("#id_status").html('<span class="label label-primary"><span class="glyphicon glyphicon-play">&nbsp;PLAY</span></span>');
+                    $("#id_status").html('<span class="label label-primary"><span class="glyphicon glyphicon-play"></span>&nbsp;PLAY</span>');
                 } else {
-                    $("#id_status").html('<span class="label label-danger"><span class="glyphicon glyphicon-stop">&nbsp;STOP</span></span>');
+                    $("#id_status").html('<span class="label label-danger"><span class="glyphicon glyphicon-stop"></span>&nbsp;STOP</span>');
                 }
 
                 oCViewer.update(miz.music_player.CPlayer.INSTANCE);
