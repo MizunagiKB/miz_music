@@ -227,8 +227,13 @@ var CMusicParserRCP = (function () {
                             var oCRCPStep = null;
                             listCRCPStep.push(this.build_array(oCTWork, miz.music.E_MIDI_MSG.CONTROL_CHANGE, 0, [
                                 0xB0 + oCTWork.m_nCh,
-                                0x20,
+                                0x00,
                                 this.m_oCParser.m_aryData[nAddr + 3]
+                            ]));
+                            listCRCPStep.push(this.build_array(oCTWork, miz.music.E_MIDI_MSG.CONTROL_CHANGE, 0, [
+                                0xB0 + oCTWork.m_nCh,
+                                0x20,
+                                0
                             ]));
                             listCRCPStep.push(this.build_array(oCTWork, miz.music.E_MIDI_MSG.PROGRAM_CHANGE, 0, [
                                 0xC0 + oCTWork.m_nCh,

@@ -363,6 +363,21 @@ class CMusicParserRCP
                             let oCMIDIData = null;
                             let oCRCPStep = null;
 
+                            // BANK MSB
+                            listCRCPStep.push(
+                                this.build_array(
+                                    oCTWork,
+                                    miz.music.E_MIDI_MSG.CONTROL_CHANGE,
+                                    0,
+                                    [
+                                        0xB0 + oCTWork.m_nCh,
+                                        0x00,
+                                        this.m_oCParser.m_aryData[nAddr + 3]
+                                    ]
+                                )
+                            );
+
+                            // BANK LSB
                             listCRCPStep.push(
                                 this.build_array(
                                     oCTWork,
@@ -371,11 +386,12 @@ class CMusicParserRCP
                                     [
                                         0xB0 + oCTWork.m_nCh,
                                         0x20,
-                                        this.m_oCParser.m_aryData[nAddr + 3]
+                                        0
                                     ]
                                 )
                             );
 
+                            // Program Change
                             listCRCPStep.push(
                                 this.build_array(
                                     oCTWork,
