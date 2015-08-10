@@ -43,8 +43,8 @@ var CExc = (function () {
             if (nValue == 0xF7) {
                 var nSize = aryResult.length + 1;
                 aryResult.push(0xF7);
-                aryResult.unshift(0xF0);
                 aryResult.unshift(nSize);
+                aryResult.unshift(0xF0);
                 break;
             }
             switch (nValue) {
@@ -64,7 +64,7 @@ var CExc = (function () {
                     nCheckSum = 0;
                     break;
                 case 0x84:
-                    aryResult.push(0x80 - nCheckSum);
+                    aryResult.push(0x80 - (nCheckSum & 0x7F));
                     break;
                 default:
                     aryResult.push(nValue);
@@ -106,6 +106,7 @@ var CExcRoland = (function (_super) {
         this.m_aryData.push(this.m_nOffset);
         this.m_aryData.push(this.m_nParam);
         this.m_aryData.push(0x84);
+        this.m_aryData.push(0xF7);
         return (_super.prototype.build.call(this));
     };
     return CExcRoland;
@@ -143,6 +144,13 @@ var CRCPStep = (function () {
         this.m_nSequence = 0;
         this.m_oCMIDIData = null;
     }
+    CRCPStep.prototype.ary_print = function () {
+        var strResult = "";
+        for (var i = 0; i < this.m_oCMIDIData.m_aryValue.length; i++) {
+            strResult += (" " + this.m_oCMIDIData.m_aryValue[i].toString(16));
+        }
+        console.log(strResult);
+    };
     return CRCPStep;
 })();
 /*!
@@ -332,6 +340,8 @@ var CMusicParserRCP = (function () {
                             console.assert(oCExc != null);
                             o.m_nOffset = this.m_oCParser.m_aryData[nAddr + 2];
                             o.m_nParam = this.m_oCParser.m_aryData[nAddr + 3];
+                            o.set_param(oCTWork, this.m_oCParser.m_aryData[nAddr + 2], this.m_oCParser.m_aryData[nAddr + 3]);
+                            listCRCPStep.push(o.build());
                             nStep = this.m_oCParser.m_aryData[nAddr + 1];
                         }
                         break;
@@ -578,6 +588,7 @@ var CMusicParserRCP = (function () {
                 for (var j = 0; j < 24; j++) {
                     oCExc.m_aryData.push(this.m_oCParser.m_aryData[0x0406 + (48 * i) + 24 + j]);
                 }
+                oCExc.m_aryData.push(0xF7);
                 this.m_listCExc.push(oCExc);
             }
         }

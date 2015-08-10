@@ -58,8 +58,8 @@ class CExc
 
                 aryResult.push(0xF7);
 
-                aryResult.unshift(0xF0);
                 aryResult.unshift(nSize);
+                aryResult.unshift(0xF0);
 
                 break;
             }
@@ -89,7 +89,7 @@ class CExc
                     break;
 
                 case 0x84:
-                    aryResult.push(0x80 - nCheckSum);
+                    aryResult.push(0x80 - (nCheckSum & 0x7F));
                     break;
 
                 default:
@@ -136,6 +136,7 @@ class CExcRoland extends CExc
         this.m_aryData.push(this.m_nOffset);
         this.m_aryData.push(this.m_nParam);
         this.m_aryData.push(0x84);
+        this.m_aryData.push(0xF7);
 
         return(super.build());
     }
@@ -180,6 +181,18 @@ class CRCPStep
     public m_nStep: number = 0;
     public m_nSequence: number = 0;
     public m_oCMIDIData: miz.music.CMIDIData = null;
+
+    public ary_print(): void
+    {
+        let strResult: string = "";
+
+        for (let i = 0; i < this.m_oCMIDIData.m_aryValue.length; i++)
+        {
+            strResult += (" " + this.m_oCMIDIData.m_aryValue[i].toString(16));
+        }
+
+        console.log(strResult);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -455,6 +468,7 @@ class CMusicParserRCP
                                 this.m_oCParser.m_aryData[nAddr + 3]
                             );
 
+                            //o.build().ary_print();
                             listCRCPStep.push(
                                 o.build()
                             );
@@ -511,6 +525,17 @@ class CMusicParserRCP
 
                             o.m_nOffset = this.m_oCParser.m_aryData[nAddr + 2];
                             o.m_nParam = this.m_oCParser.m_aryData[nAddr + 3];
+
+                            o.set_param(
+                                oCTWork,
+                                this.m_oCParser.m_aryData[nAddr + 2],
+                                this.m_oCParser.m_aryData[nAddr + 3]
+                            );
+
+                            // o.build().ary_print();
+                            listCRCPStep.push(
+                                o.build()
+                            );
 
                             nStep = this.m_oCParser.m_aryData[nAddr + 1];
                         }
@@ -723,6 +748,7 @@ class CMusicParserRCP
 
                                     if (nValue == 0xF7)
                                     {
+                                        //oCExc.build().ary_print();
                                         listCRCPStep.push(
                                             oCExc.build()
                                         );
@@ -960,6 +986,8 @@ class CMusicParserRCP
                         this.m_oCParser.m_aryData[0x0406 + (48 * i) + 24 + j]
                     );
                 }
+
+                oCExc.m_aryData.push(0xF7);
 
                 this.m_listCExc.push(oCExc);
 
