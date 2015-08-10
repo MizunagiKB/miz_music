@@ -26,10 +26,10 @@ class CExc
 
     constructor(oCTWork: CRCPTrackWork = null, nGate: number = 0, nVelo: number = 0)
     {
-        this.set(oCTWork, nGate, nVelo);
+        this.set_param(oCTWork, nGate, nVelo);
     }
 
-    public set(oCTWork: CRCPTrackWork, nGate: number, nVelo: number)
+    public set_param(oCTWork: CRCPTrackWork, nGate: number, nVelo: number): void
     {
         if(oCTWork != null)
         {
@@ -447,16 +447,16 @@ class CMusicParserRCP
                     case 0x96:
                     case 0x97:
                         {
-                            let oCExc: CExc = this.m_listCExc[0x90 - nEv];
+                            let o: CExc = this.m_listCExc[nEv - 0x90];
 
-                            oCExc.set(
+                            o.set_param(
                                 oCTWork,
                                 this.m_oCParser.m_aryData[nAddr + 2],
                                 this.m_oCParser.m_aryData[nAddr + 3]
                             );
 
                             listCRCPStep.push(
-                                oCExc.build()
+                                o.build()
                             );
 
                             nStep = this.m_oCParser.m_aryData[nAddr + 1];

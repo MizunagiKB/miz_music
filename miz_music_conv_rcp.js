@@ -23,9 +23,9 @@ var CExc = (function () {
         this.m_nCh = 0;
         this.m_nGate = 0;
         this.m_nVelo = 0;
-        this.set(oCTWork, nGate, nVelo);
+        this.set_param(oCTWork, nGate, nVelo);
     }
-    CExc.prototype.set = function (oCTWork, nGate, nVelo) {
+    CExc.prototype.set_param = function (oCTWork, nGate, nVelo) {
         if (oCTWork != null) {
             this.m_nCh = oCTWork.m_nCh;
             this.m_nStep = oCTWork.m_nStepTotal;
@@ -302,9 +302,9 @@ var CMusicParserRCP = (function () {
                     case 0x96:
                     case 0x97:
                         {
-                            var oCExc_1 = this.m_listCExc[0x90 - nEv];
-                            oCExc_1.set(oCTWork, this.m_oCParser.m_aryData[nAddr + 2], this.m_oCParser.m_aryData[nAddr + 3]);
-                            listCRCPStep.push(oCExc_1.build());
+                            var o = this.m_listCExc[nEv - 0x90];
+                            o.set_param(oCTWork, this.m_oCParser.m_aryData[nAddr + 2], this.m_oCParser.m_aryData[nAddr + 3]);
+                            listCRCPStep.push(o.build());
                             nStep = this.m_oCParser.m_aryData[nAddr + 1];
                         }
                         break;
