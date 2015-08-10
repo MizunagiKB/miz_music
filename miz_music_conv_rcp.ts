@@ -57,8 +57,6 @@ class CExc
                 let nSize: number = aryResult.length + 1;
 
                 aryResult.push(0xF7);
-
-                aryResult.unshift(nSize);
                 aryResult.unshift(0xF0);
 
                 break;

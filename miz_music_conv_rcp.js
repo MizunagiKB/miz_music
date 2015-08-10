@@ -43,7 +43,6 @@ var CExc = (function () {
             if (nValue == 0xF7) {
                 var nSize = aryResult.length + 1;
                 aryResult.push(0xF7);
-                aryResult.unshift(nSize);
                 aryResult.unshift(0xF0);
                 break;
             }
