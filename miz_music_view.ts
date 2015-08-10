@@ -22,9 +22,6 @@ module miz.music_viewer
 export class CViewer
 {
     static INSTANCE: CViewer = null;
-    static INTERVAL: number = 100;
-    static HEIGHT: number = 96;
-    static PEAK_HISTORY: number = 136;
 
     m_oCStage: createjs.Stage = null;
     m_listKb0: Array<createjs.Bitmap> = [];
