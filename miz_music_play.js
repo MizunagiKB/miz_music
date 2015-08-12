@@ -242,7 +242,7 @@ var miz;
         /*!
          */
         function evt_midi_success(oCEvt) {
-            console.log(oCEvt);
+            // console.log(oCEvt);
             var iter = oCEvt.outputs.values();
             for (var o = iter.next(); !o.done; o = iter.next()) {
                 CPlayer.MIDI_O_LIST.push(o.value);

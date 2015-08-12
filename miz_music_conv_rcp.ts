@@ -188,8 +188,6 @@ class CRCPStep
         {
             strResult += (" " + this.m_oCMIDIData.m_aryValue[i].toString(16));
         }
-
-        console.log(strResult);
     }
 }
 

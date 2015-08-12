@@ -17,6 +17,7 @@
         "./miz_music_conv_rcp.ts",
         "./miz_music_conv_smf.ts",
         "./miz_music_play.ts",
+        "./miz_music_role.ts",
         "./miz_music_view.ts"
     ]
 }

@@ -136,7 +136,6 @@ var CMusicParserSMF = (function () {
                                 });
                                 if (nType == miz.music.E_META_EVT.TRACK_NAME) {
                                     if (this.m_strTitle == "") {
-                                        console.log(oCData.m_eMEvt.toString(16) + " " + oCData.m_strValue);
                                         this.m_strTitle = oCData.m_strValue;
                                     }
                                 }
@@ -144,7 +143,6 @@ var CMusicParserSMF = (function () {
                             }
                             break;
                         case miz.music.E_META_EVT.END_OF_TRACK:
-                            console.log("End of Track 0xFF" + " 0x" + nType.toString(16) + " " + nSize);
                             this.m_nPos += nSize;
                             break;
                         case miz.music.E_META_EVT.TEMPO:

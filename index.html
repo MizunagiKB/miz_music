@@ -41,13 +41,18 @@
             {
                 font-family: 'Hind', sans-serif;
             }
+
+            .render-pixelated
+            {
+                image-rendering: pixelated;
+            }
         </style>
 
     </head>
 
     <body>
 
-        <nav class="navbar navbar-default navbar-fixed-top">
+        <nav class="navbar navbar-inverse navbar-fixed-top">
             <div class="container-fluid">
                 <div class="navbar-header">
                     <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
@@ -102,43 +107,55 @@
                 <h4 id="id_active_music">*</h4>
             </div>
 
+            <p>
+                <div class="row">
+                    <div class="col-md-2 text-right"><span class="label label-default">TEMPO</span></div>
+                    <div id="id_tempo" class="col-md-1 text-right"></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 text-right"><span class="label label-default">STEP</span></div>
+                    <div id="id_step" class="col-md-1 text-right"></div>
+                </div>
+                <div class="row">
+                    <div class="col-md-2 text-right"><span class="label label-default">STATUS</span></div>
+                    <div id="id_status" class="col-md-1 text-right"></div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 text-center">
+                        <div class="btn-group" data-toggle="buttons">
+                            <label class="btn btn-default active">
+                                <input id="id_chk_monit" type="checkbox" autocomplete="off" checked /><span class="glyphicon glyphicon-equalizer"></span>&nbsp;Monitor
+                            </label>
+                            <label class="btn btn-default active">
+                                <input id="id_chk_prole" type="checkbox" autocomplete="off" checked /><span class="glyphicon glyphicon-info-sign"></span>&nbsp;Piano role
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+            </p>
+
             <div class="font-disp">
+
                 <ul class="nav nav-tabs" role="tablist">
                     <li role="presentation" class="active"><a href="#mon" aria-controls="mon" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-equalizer"></span>&nbsp;Monitor</a></li>
-                    <!--
-                    <li role="presentation"><a href="#inf" aria-controls="inf" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-info-sign"></span>&nbsp;Information</a></li>
-                      -->
+                    <li role="presentation"><a href="#rol" aria-controls="rol" role="tab" data-toggle="tab"><span class="glyphicon glyphicon-info-sign"></span>&nbsp;Piano role</a></li>
                 </ul>
             </div>
 
-            <div>
-                <div class="tab-content">
-                    <div id="mon" role="tabpanel" class="tab-pane fade in active">
-                        <p>
-                            <div class="row">
-                                <div class="col-md-2 text-right"><span class="label label-default">TEMPO</span></div>
-                                <div id="id_tempo" class="col-md-1 text-right"></div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-2 text-right"><span class="label label-default">STEP</span></div>
-                                <div id="id_step" class="col-md-1 text-right"></div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-2 text-right"><span class="label label-default">STATUS</span></div>
-                                <div id="id_status" class="col-md-1 text-right"></div>
-                            </div>
-                            <canvas id="id_main_screen"></canvas>
-                        </p>
-                    </div>
-                    <!--
-                    <div id="inf" role="tabpanel" class="tab-pane fade">
-                        <p>
-                            DUMMY
-                        </p>
-                    </div>
-                      -->
+            <div class="tab-content">
+                <div id="mon" role="tabpanel" class="tab-pane fade in active">
+                    <p>
+                        <canvas id="id_main_screen" class="render-pixelated"></canvas>
+                    </p>
                 </div>
-
+                <!-- Piano role -->
+                <div id="rol" role="tabpanel" class="tab-pane fade">
+                    <p>
+                        <canvas id="id_main_role" class="render-pixelated"></canvas>
+                    </p>
+                </div>
             </div>
 
             <div>
@@ -183,6 +200,8 @@
             // ---------------------------------------------- Global Object(s)
             var GLOBAL = new Object();
             GLOBAL.STATS = null;
+            GLOBAL.ENABLE_MONIT = true;
+            GLOBAL.ENABLE_PROLE = true;
             GLOBAL.MUSIC_DATA = [];
 
             // --------------------------------------------------- function(s)
@@ -428,6 +447,10 @@
 
                 miz.music_player.CPlayer.INSTANCE.stop();
 
+                miz.music_prole.CPRole.INSTANCE.parse(
+                    GLOBAL.MUSIC_DATA[nIdx].filedata
+                );
+
                 miz.music_player.CPlayer.INSTANCE.load(
                     GLOBAL.MUSIC_DATA[nIdx].filedata
                 );
@@ -464,6 +487,7 @@
             function evt_update()
             {
                 var oCViewer = miz.music_viewer.CViewer.INSTANCE;
+                var oCPRole = miz.music_prole.CPRole.INSTANCE;
                 var oCPlayer = miz.music_player.CPlayer.INSTANCE;
 
                 $("#id_tempo").html(
@@ -486,7 +510,15 @@
                     $("#id_status").html('<span class="label label-danger"><span class="glyphicon glyphicon-stop"></span>&nbsp;STOP</span>');
                 }
 
-                oCViewer.update(miz.music_player.CPlayer.INSTANCE);
+                if(GLOBAL.ENABLE_MONIT == true)
+                {
+                    oCViewer.update(miz.music_player.CPlayer.INSTANCE);
+                }
+
+                if(GLOBAL.ENABLE_PROLE == true)
+                {
+                    oCPRole.update(miz.music_player.CPlayer.INSTANCE);
+                }
             }
 
             function webmidi_init(bSysEx)
@@ -535,6 +567,7 @@
                 webmidi_init(true);
 
                 miz.music_viewer.create_instance("id_main_screen")
+                miz.music_prole.create_instance("id_main_role")
 
                 $("#id_filedrop").on("dragover", evt_dragover);
                 $("#id_filedrop").on("drop", evt_drop);
@@ -561,6 +594,22 @@
                     function(oCEvt)
                     {
                         webmidi_init(false)
+                    }
+                );
+
+                $("#id_chk_monit").on(
+                    "change",
+                    function(oCEvt)
+                    {
+                        GLOBAL.ENABLE_MONIT = $("#id_chk_monit").prop("checked");
+                    }
+                );
+
+                $("#id_chk_prole").on(
+                    "change",
+                    function(oCEvt)
+                    {
+                        GLOBAL.ENABLE_PROLE = $("#id_chk_prole").prop("checked");
                     }
                 );
 
@@ -598,6 +647,7 @@
         <script type="text/javascript" src="miz_music_conv_smf.js"></script>
         <script type="text/javascript" src="miz_music_play.js"></script>
         <script type="text/javascript" src="miz_music_view.js"></script>
+        <script type="text/javascript" src="miz_music_role.js"></script>
 
     </body>
 </html>

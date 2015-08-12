@@ -148,7 +148,6 @@ var CRCPStep = (function () {
         for (var i = 0; i < this.m_oCMIDIData.m_aryValue.length; i++) {
             strResult += (" " + this.m_oCMIDIData.m_aryValue[i].toString(16));
         }
-        console.log(strResult);
     };
     return CRCPStep;
 })();
