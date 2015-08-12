@@ -380,7 +380,7 @@ function evt_update()
  */
 function evt_midi_success(oCEvt): void
 {
-    console.log(oCEvt);
+    // console.log(oCEvt);
 
     let iter = oCEvt.outputs.values();
 

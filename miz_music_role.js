@@ -143,7 +143,6 @@ var miz;
                 this.m_listNote.sort(function (a, b) {
                     return (a.m_nStep - b.m_nStep);
                 });
-                console.log(this.m_listNote.length);
             };
             CPRole.prototype.update_role = function (nStepCurr) {
                 var nPRoleWidth = 384 - 16;

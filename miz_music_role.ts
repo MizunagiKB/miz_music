@@ -199,7 +199,7 @@ export class CPRole
             }
         )
 
-        console.log(this.m_listNote.length);
+        // console.log(this.m_listNote.length);
     }
 
     private update_role(nStepCurr: number): void
